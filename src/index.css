@@ -1,0 +1,275 @@
+@import "tailwindcss";
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/* Glow Border + Gradient Background */
+.super-toast {
+  background: rgba(255, 255, 255, 0.15) !important;
+  backdrop-filter: blur(14px);
+  border-radius: 16px !important;
+  padding: 14px 18px !important;
+  color: white !important;
+  border: 2px solid rgba(255, 255, 255, 0.2) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated gradient edge */
+.super-toast::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: 16px;
+  background: linear-gradient(
+    120deg,
+    #ff00ea,
+    #00d0ff,
+    #00ff95,
+    #ffbf00
+  );
+  background-size: 400% 400%;
+  animation: spinGradient 6s ease infinite;
+  mask: 
+    linear-gradient(#000 0 0) content-box, 
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+/* Soft animated glow */
+.super-toast::after {
+  content: "";
+  position: absolute;
+  top: -40%;
+  left: -40%;
+  width: 180%;
+  height: 180%;
+  background: radial-gradient(circle, rgba(255,255,255,0.15), transparent 70%);
+  animation: glowMove 8s linear infinite;
+}
+
+@keyframes glowMove {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(20%, 20%); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes spinGradient {
+  0% { background-position: 0 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+
+/* Add this CSS to your global styles for the gradient animation */
+@keyframes gradient-x {
+  0%, 100% {
+    background-size: 200% 200%;
+    background-position: left center;
+  }
+  50% {
+    background-size: 200% 200%;
+    background-position: right center;
+  }
+}
+
+.animate-gradient-x {
+  animation: gradient-x 3s ease infinite;
+}
+
+
+ .modal-scroll-area {
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+  }
+  
+  .modal-scroll-area::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  
+  .modal-scroll-area::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.2);
+    border-radius: 10px;
+    margin: 4px;
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .modal-scroll-area::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, 
+      rgba(16, 185, 129, 0.7) 0%, 
+      rgba(6, 182, 212, 0.9) 50%,
+      rgba(16, 185, 129, 0.7) 100%);
+    border-radius: 10px;
+    border: 2px solid rgba(15, 23, 42, 0.3);
+    background-clip: padding-box;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .modal-scroll-area::-webkit-scrollbar-thumb {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, 
+      rgba(16, 185, 129, 0.3) 0%, 
+      rgba(6, 182, 212, 0.5) 50%,
+      rgba(16, 185, 129, 0.3) 100%);
+    border-radius: 10px;
+    filter: blur(4px);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .modal-scroll-area::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, 
+      rgba(16, 185, 129, 0.9) 0%, 
+      rgba(6, 182, 212, 1) 50%,
+      rgba(16, 185, 129, 0.9) 100%);
+    transform: scale(1.05);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.4),
+                0 0 24px rgba(6, 182, 212, 0.3);
+  }
+  
+  .modal-scroll-area::-webkit-scrollbar-thumb:hover {
+    opacity: 1;
+  }
+  
+  .modal-scroll-area::-webkit-scrollbar-button {
+    display: none;
+  }
+  
+  .modal-scroll-area::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  
+  /* Firefox */
+  .modal-scroll-area {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(16, 185, 129, 0.7) rgba(15, 23, 42, 0.2);
+  }
+  
+  /* For dark mode adjustments */
+  @media (prefers-color-scheme: dark) {
+    .modal-scroll-area::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.4);
+    }
+  }
+  
+  /* Mobile optimization */
+  @media (max-width: 640px) {
+    .modal-scroll-area::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .modal-scroll-area::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, 
+        rgba(16, 185, 129, 0.6) 0%, 
+        rgba(6, 182, 212, 0.8) 100%);
+    }
+    
+    .modal-scroll-area::-webkit-scrollbar-thumb:hover {
+      transform: scale(1.02);
+    }
+  }
+  
+  /* Animation for scrollbar when modal opens */
+  @keyframes scrollbarAppear {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .modal-scroll-area::-webkit-scrollbar-thumb {
+    animation: scrollbarAppear 0.5s ease-out 0.3s both;
+  }
+
+
+
+  /* Custom animations and styles */
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(5deg);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(6, 182, 212, 0.6);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #06b6d4, #8b5cf6);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #22d3ee, #a855f7);
+}
+
+/* Smooth transitions */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Performance optimizations */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
