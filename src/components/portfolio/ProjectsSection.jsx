@@ -232,8 +232,8 @@ const ProjectsSection = () => {
                 whileHover={{ scale: 1.05 }}
                 className="inline-flex items-center justify-center gap-2 sm:gap-3 mb-4 sm:mb-6 flex-wrap"
               >
-                <div className="relative p-2 sm:p-3 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-lg border border-emerald-400/20">
-                  <Rocket className="w-6 h-6 sm:w-9 sm:h-9 text-emerald-300" />
+                <div className="relative p-3 sm:p-3 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-lg border border-emerald-400/20">
+                  <Rocket className="w-7 h-7 sm:w-9 sm:h-9 text-emerald-300" />
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-emerald-500/30 to-cyan-500/30 rounded-2xl blur-xl"
                     animate={{ scale: [1, 1.2, 1] }}
@@ -241,7 +241,7 @@ const ProjectsSection = () => {
                   />
                 </div>
 
-                <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black leading-tight text-balance max-w-full">
+                <h1 className="text-3xl sm:text-3xl md:text-4xl lg:text-5xl font-black leading-tight text-balance max-w-full">
                   <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-amber-300 bg-clip-text text-transparent">
                     Featured Projects
                   </span>
