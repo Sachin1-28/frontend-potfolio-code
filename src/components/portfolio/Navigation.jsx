@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Menu, X, Code2, Sparkles } from "lucide-react";
 
 const Navigation = ({ activeSection, scrollToSection }) => {
@@ -9,11 +9,12 @@ const Navigation = ({ activeSection, scrollToSection }) => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
-  const sections = [
+  // Memoize sections array to prevent recreation
+  const sections = useMemo(() => [
     { id: "home", label: "Home" },
     { id: "about", label: "About" },
     { id: "skills", label: "Skills" },
@@ -21,43 +22,42 @@ const Navigation = ({ activeSection, scrollToSection }) => {
     { id: "experience", label: "Experience" },
     { id: "certifications", label: "Certifications" },
     { id: "contact", label: "Contact" }
-  ];
+  ], []);
 
-  const handleNavClick = (sectionId) => {
+  // Memoize callback to prevent recreation
+  const handleNavClick = useCallback((sectionId) => {
     scrollToSection(sectionId);
     setMobileMenuOpen(false);
-  };
+  }, [scrollToSection]);
 
   return (
     <>
       <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${
         scrolled 
-          ? 'bg-slate-950/80 backdrop-blur-2xl shadow-2xl shadow-blue-500/10 py-3' 
-          : 'bg-gradient-to-r from-slate-950 via-blue-950/50 to-slate-950 backdrop-blur-xl py-4'
+          ? 'bg-slate-950/80 backdrop-blur-lg shadow-2xl shadow-blue-500/10 py-3' 
+          : 'bg-gradient-to-r from-slate-950 via-blue-950/50 to-slate-950 backdrop-blur-md py-4'
       }`}>
-        {/* Animated background particles */}
+        {/* Optimized animated background - reduced particles */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="particle particle-1"></div>
           <div className="particle particle-2"></div>
           <div className="particle particle-3"></div>
-          <div className="particle particle-4"></div>
-          <div className="particle particle-5"></div>
           <div className="animated-gradient"></div>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="flex justify-between items-center">
             {/* Logo */}
-            <div className="relative group cursor-pointer flex items-center gap-3">
+            <div className="relative group cursor-pointer flex items-center gap-2 sm:gap-3">
               <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-teal-400 to-orange-500 rounded-xl blur-xl opacity-60 group-hover:opacity-100 transition-all duration-500 animate-pulse-slow"></div>
-                <div className="relative bg-gradient-to-br from-slate-900 to-blue-900/50 p-2.5 rounded-xl border border-blue-400/30 group-hover:border-teal-400/60 transition-all duration-300 group-hover:scale-110">
-                  <Code2 className="w-6 h-6 text-teal-400 group-hover:text-orange-400 transition-colors duration-300" strokeWidth={2.5} />
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-teal-400 to-orange-500 rounded-xl blur-lg opacity-60 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative bg-gradient-to-br from-slate-900 to-blue-900/50 p-2 sm:p-2.5 rounded-xl border border-blue-400/30 group-hover:border-teal-400/60 transition-all duration-300 group-hover:scale-110">
+                  <Code2 className="w-5 h-5 sm:w-6 sm:h-6 text-teal-400 group-hover:text-orange-400 transition-colors duration-300" strokeWidth={2.5} />
                 </div>
-                <Sparkles className="absolute -top-1 -right-1 w-4 h-4 text-orange-400 animate-spin-slow opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <Sparkles className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 text-orange-400 animate-spin-slow opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
               <div className="relative">
-                <span className="text-2xl sm:text-3xl font-black tracking-tight bg-gradient-to-r from-blue-400 via-teal-300 to-orange-400 bg-clip-text text-transparent group-hover:from-teal-400 group-hover:via-blue-300 group-hover:to-orange-500 transition-all duration-500">
+                <span className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight bg-gradient-to-r from-blue-400 via-teal-300 to-orange-400 bg-clip-text text-transparent group-hover:from-teal-400 group-hover:via-blue-300 group-hover:to-orange-500 transition-all duration-500">
                   SACHIN
                 </span>
                 <div className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-blue-500 to-teal-400 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
@@ -111,17 +111,18 @@ const Navigation = ({ activeSection, scrollToSection }) => {
               ))}
             </div>
 
-            {/* Mobile menu button */}
+            {/* Mobile menu button - reduced size */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden relative group p-2.5 rounded-xl transition-all duration-300"
+              className="lg:hidden relative group p-2 rounded-lg transition-all duration-300"
+              aria-label="Toggle menu"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-teal-400 to-orange-500 rounded-xl opacity-0 group-hover:opacity-100 blur-lg transition-all duration-300"></div>
-              <div className="relative bg-gradient-to-br from-slate-900 to-blue-900/50 p-2 rounded-xl border border-blue-400/30 group-hover:border-teal-400/60 transition-all duration-300">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-teal-400 to-orange-500 rounded-lg opacity-0 group-hover:opacity-100 blur-md transition-all duration-300"></div>
+              <div className="relative bg-gradient-to-br from-slate-900 to-blue-900/50 p-1.5 rounded-lg border border-blue-400/30 group-hover:border-teal-400/60 transition-all duration-300">
                 <div className={`transition-transform duration-300 ${mobileMenuOpen ? 'rotate-90' : ''}`}>
                   {mobileMenuOpen ? 
-                    <X className="w-6 h-6 text-orange-400" strokeWidth={2.5} /> : 
-                    <Menu className="w-6 h-6 text-teal-400 group-hover:text-blue-400 transition-colors duration-300" strokeWidth={2.5} />
+                    <X className="w-5 h-5 text-orange-400" strokeWidth={2.5} /> : 
+                    <Menu className="w-5 h-5 text-teal-400 group-hover:text-blue-400 transition-colors duration-300" strokeWidth={2.5} />
                   }
                 </div>
               </div>
@@ -129,13 +130,13 @@ const Navigation = ({ activeSection, scrollToSection }) => {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Navigation - reduced size */}
         <div
           className={`lg:hidden transition-all duration-500 ease-in-out ${
-             mobileMenuOpen ? "max-h-[600px] opacity-100 pointer-events-auto" : "max-h-0 opacity-0 pointer-events-none"
+             mobileMenuOpen ? "max-h-[500px] opacity-100 pointer-events-auto" : "max-h-0 opacity-0 pointer-events-none"
           }`}
         >
-          <div className="relative px-4 pt-4 pb-6 space-y-2 bg-gradient-to-b from-slate-950/95 via-blue-950/90 to-slate-950/95 backdrop-blur-2xl border-t border-blue-500/20">
+          <div className="relative px-3 pt-3 pb-4 space-y-1.5 bg-gradient-to-b from-slate-950/95 via-blue-950/90 to-slate-950/95 backdrop-blur-xl border-t border-blue-500/20">
             {/* Mobile menu animated background */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-30">
               <div className="mobile-gradient"></div>
@@ -151,15 +152,15 @@ const Navigation = ({ activeSection, scrollToSection }) => {
                 }}
               >
                 {/* Glow effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-teal-400 to-orange-500 rounded-xl opacity-0 group-hover:opacity-30 blur-lg transition-all duration-300"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-teal-400 to-orange-500 rounded-lg opacity-0 group-hover:opacity-30 blur-md transition-all duration-300"></div>
                 
-                {/* Main button */}
-                <div className={`relative px-5 py-3.5 rounded-xl transition-all duration-300 flex items-center justify-between ${
+                {/* Main button - reduced padding */}
+                <div className={`relative px-3.5 py-2.5 rounded-lg transition-all duration-300 flex items-center justify-between ${
                   activeSection === section.id
                     ? "bg-gradient-to-r from-blue-500/25 to-teal-500/25 border border-teal-400/50 shadow-lg shadow-blue-500/20"
                     : "bg-slate-900/40 border border-slate-700/50 group-hover:border-blue-400/40 group-hover:bg-blue-500/10"
                 }`}>
-                  <span className={`relative z-10 text-base font-bold transition-all duration-300 ${
+                  <span className={`relative z-10 text-sm font-bold transition-all duration-300 ${
                     activeSection === section.id
                       ? "text-transparent bg-gradient-to-r from-blue-400 to-teal-400 bg-clip-text"
                       : "text-gray-300 group-hover:text-white"
@@ -167,15 +168,15 @@ const Navigation = ({ activeSection, scrollToSection }) => {
                     {section.label}
                   </span>
 
-                  {/* Active indicator */}
+                  {/* Active indicator - smaller */}
                   {activeSection === section.id ? (
                     <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                      <div className="w-2 h-2 bg-teal-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                      <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
+                      <div className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                     </div>
                   ) : (
-                    <div className="w-1.5 h-1.5 bg-slate-600 rounded-full group-hover:bg-blue-400 transition-colors duration-300"></div>
+                    <div className="w-1 h-1 bg-slate-600 rounded-full group-hover:bg-blue-400 transition-colors duration-300"></div>
                   )}
                 </div>
 
@@ -190,20 +191,20 @@ const Navigation = ({ activeSection, scrollToSection }) => {
       </nav>
 
       <style jsx='true'>{`
-        /* Animated background particles */
+        /* Optimized animated background particles - reduced from 5 to 3 */
         .particle {
           position: absolute;
-          width: 4px;
-          height: 4px;
-          background: radial-gradient(circle, rgba(59, 130, 246, 0.8), transparent);
           border-radius: 50%;
+          will-change: transform, opacity;
           animation: float 20s infinite ease-in-out;
         }
         
         .particle-1 {
           top: 20%;
           left: 10%;
-          animation-delay: 0s;
+          width: 4px;
+          height: 4px;
+          background: radial-gradient(circle, rgba(59, 130, 246, 0.8), transparent);
           animation-duration: 15s;
         }
         
@@ -219,31 +220,11 @@ const Navigation = ({ activeSection, scrollToSection }) => {
         
         .particle-3 {
           top: 40%;
-          left: 60%;
-          width: 5px;
-          height: 5px;
-          background: radial-gradient(circle, rgba(249, 115, 22, 0.6), transparent);
-          animation-delay: 4s;
-          animation-duration: 22s;
-        }
-        
-        .particle-4 {
-          top: 70%;
-          left: 80%;
-          width: 3px;
-          height: 3px;
-          background: radial-gradient(circle, rgba(59, 130, 246, 0.7), transparent);
-          animation-delay: 6s;
-          animation-duration: 16s;
-        }
-        
-        .particle-5 {
-          top: 30%;
-          right: 15%;
+          right: 20%;
           width: 4px;
           height: 4px;
-          background: radial-gradient(circle, rgba(20, 184, 166, 0.6), transparent);
-          animation-delay: 8s;
+          background: radial-gradient(circle, rgba(249, 115, 22, 0.6), transparent);
+          animation-delay: 4s;
           animation-duration: 20s;
         }
         
@@ -256,7 +237,7 @@ const Navigation = ({ activeSection, scrollToSection }) => {
             opacity: 1;
           }
           50% {
-            transform: translate(100px, -50px) scale(1.5);
+            transform: translate(80px, -40px) scale(1.3);
             opacity: 0.8;
           }
           90% {
@@ -264,7 +245,7 @@ const Navigation = ({ activeSection, scrollToSection }) => {
           }
         }
         
-        /* Animated gradient background */
+        /* Optimized animated gradient background */
         .animated-gradient {
           position: absolute;
           top: 0;
@@ -279,7 +260,8 @@ const Navigation = ({ activeSection, scrollToSection }) => {
             rgba(249, 115, 22, 0.02),
             transparent
           );
-          animation: slideGradient 10s infinite linear;
+          will-change: transform;
+          animation: slideGradient 12s infinite linear;
         }
         
         @keyframes slideGradient {
@@ -288,7 +270,7 @@ const Navigation = ({ activeSection, scrollToSection }) => {
           }
         }
         
-        /* Mobile menu gradient */
+        /* Mobile menu gradient - optimized */
         .mobile-gradient {
           position: absolute;
           top: -50%;
@@ -297,11 +279,12 @@ const Navigation = ({ activeSection, scrollToSection }) => {
           height: 200%;
           background: radial-gradient(
             circle,
-            rgba(59, 130, 246, 0.15) 0%,
-            rgba(20, 184, 166, 0.1) 50%,
+            rgba(59, 130, 246, 0.12) 0%,
+            rgba(20, 184, 166, 0.08) 50%,
             transparent 100%
           );
-          animation: rotateMobileGradient 15s infinite linear;
+          will-change: transform;
+          animation: rotateMobileGradient 20s infinite linear;
         }
         
         @keyframes rotateMobileGradient {
@@ -310,7 +293,7 @@ const Navigation = ({ activeSection, scrollToSection }) => {
           }
         }
         
-        /* Shine effect */
+        /* Optimized shine effect */
         .shine-effect {
           position: absolute;
           top: 0;
@@ -323,6 +306,7 @@ const Navigation = ({ activeSection, scrollToSection }) => {
             rgba(255, 255, 255, 0.1),
             transparent
           );
+          will-change: transform;
           animation: shine 3s infinite;
         }
         
@@ -346,22 +330,6 @@ const Navigation = ({ activeSection, scrollToSection }) => {
         
         .animate-bounce-dot {
           animation: bounce-dot 1.5s ease-in-out infinite;
-        }
-        
-        /* Pulse slow animation */
-        @keyframes pulse-slow {
-          0%, 100% {
-            opacity: 0.6;
-            transform: scale(1);
-          }
-          50% {
-            opacity: 1;
-            transform: scale(1.05);
-          }
-        }
-        
-        .animate-pulse-slow {
-          animation: pulse-slow 3s ease-in-out infinite;
         }
         
         /* Spin slow animation */

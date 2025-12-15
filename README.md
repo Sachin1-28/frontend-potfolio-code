@@ -15,13 +15,13 @@ The React Compiler is not enabled on this template because of its impact on dev 
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
 
-deployment issue 
+<!-- deployment issue  -->
 
-logout i want to give 2 times 
+<!-- very slow on mobile devices loading and scroll every thing -->
 
-very slow on mobile devices loading and scroll every thing
+<!-- navigation not know so put loading and image not visible put alt or loading -->
 
-navigation not know so put loading and image not visible put alt or loading
+<!-- logout i want to give 2 times  -->
 
 <!-- intially backend data is not visible -->
 

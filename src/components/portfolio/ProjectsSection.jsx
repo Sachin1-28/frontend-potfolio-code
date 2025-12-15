@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import gsap from "gsap";
@@ -20,11 +20,7 @@ import {
   CheckCircle2,
   ArrowRight,
   Briefcase,
-  Award,
   Target,
-  Zap,
-  Globe,
-  TrendingUp
 } from "lucide-react";
 import { fetchProjects } from "../../store/slices/projectsSlice";
 
@@ -32,30 +28,43 @@ if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
 
+// Detect if device prefers reduced motion
+const prefersReducedMotion = typeof window !== 'undefined' 
+  ? window.matchMedia('(prefers-reduced-motion: reduce)').matches 
+  : false;
+
+// Optimized Three.js Scene Hook with better performance
 const useOptimizedThreeScene = () => {
   const canvasRef = useRef(null);
   const rafRef = useRef(null);
   const pausedRef = useRef(false);
   const mountedRef = useRef(false);
+  const sceneRef = useRef(null);
 
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || prefersReducedMotion) return;
     mountedRef.current = true;
 
     const renderer = new THREE.WebGLRenderer({
       canvas: canvasRef.current,
       alpha: true,
-      antialias: true,
+      antialias: window.devicePixelRatio <= 1, // Only use antialiasing on low DPI screens
       powerPreference: "high-performance",
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    
+    // Cap pixel ratio to improve performance
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+    renderer.setPixelRatio(pixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
 
     const scene = new THREE.Scene();
+    sceneRef.current = scene;
+    
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.z = 5;
 
-    const geometry = new THREE.IcosahedronGeometry(2, 1);
+    // Reduced geometry complexity from IcosahedronGeometry(2, 1) to (2, 0)
+    const geometry = new THREE.IcosahedronGeometry(2, 0);
     const material = new THREE.MeshBasicMaterial({
       color: 0x10b981,
       wireframe: true,
@@ -69,12 +78,12 @@ const useOptimizedThreeScene = () => {
     scene.add(ambient);
 
     let lastTime = 0;
-    const throttle = 1000 / 30;
+    const throttle = 1000 / 24; // Reduced from 30fps to 24fps for better performance
 
     const animate = (t) => {
       if (!mountedRef.current) return;
       rafRef.current = requestAnimationFrame(animate);
-      if (pausedRef.current) return;
+      if (pausedRef.current || document.hidden) return; // Pause when tab is hidden
       if (t - lastTime < throttle) return;
       lastTime = t;
 
@@ -86,34 +95,194 @@ const useOptimizedThreeScene = () => {
 
     rafRef.current = requestAnimationFrame(animate);
 
+    // Debounced resize handler
+    let resizeTimeout;
     const onResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }, 150);
     };
-    window.addEventListener("resize", onResize);
+    
+    window.addEventListener("resize", onResize, { passive: true });
+
+    // Pause animation when tab is not visible
+    const handleVisibilityChange = () => {
+      pausedRef.current = document.hidden;
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       mountedRef.current = false;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       window.removeEventListener("resize", onResize);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      clearTimeout(resizeTimeout);
       try {
         geometry.dispose();
         material.dispose();
         renderer.dispose();
-      } catch (err) { }
+      } catch (err) {}
     };
   }, []);
 
   const pause = useCallback(() => {
     pausedRef.current = true;
   }, []);
+  
   const resume = useCallback(() => {
     pausedRef.current = false;
   }, []);
 
   return { canvasRef, pause, resume };
 };
+
+// Memoized Project Card Component to prevent unnecessary re-renders
+const ProjectCard = React.memo(({ project, idx, onOpenModal, getRoleIcon }) => {
+  return (
+    <motion.div
+      key={project._id || idx}
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: idx * 0.06 }}
+      whileHover={{ y: -8 }}
+      className="group relative transform-gpu"
+    >
+      <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/30 to-cyan-500/30 rounded-2xl blur-md group-hover:opacity-80 transition-opacity duration-400" />
+      <div className="relative bg-gradient-to-br from-slate-900 to-slate-800 backdrop-blur-sm rounded-2xl overflow-hidden border-2 border-slate-700/60 h-full flex flex-col">
+        {project.projectImage && (
+          <div className="relative h-40 sm:h-48 overflow-hidden">
+            <img
+              src={project.projectImage}
+              alt={project.projectName}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
+              decoding="async"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
+            <div className="absolute top-3 left-3">
+              <div className="px-3 py-1.5 rounded-full bg-emerald-500 text-white text-xs font-black shadow-lg border-2 border-emerald-600">
+                {project.projectClient}
+              </div>
+            </div>
+            <div className="absolute top-3 right-3 flex gap-2">
+              {project.GithubLink && (
+                <a 
+                  href={project.GithubLink} 
+                  target="_blank" 
+                  rel="noreferrer noopener" 
+                  className="p-2 bg-slate-900/90 rounded-lg hover:bg-emerald-600 transition-colors shadow"
+                  aria-label="View GitHub repository"
+                >
+                  <Github className="w-4 h-4 text-white" />
+                </a>
+              )}
+              {project.projectLink && (
+                <a 
+                  href={project.projectLink} 
+                  target="_blank" 
+                  rel="noreferrer noopener" 
+                  className="p-2 bg-slate-900/90 rounded-lg hover:bg-cyan-600 transition-colors shadow"
+                  aria-label="View live project"
+                >
+                  <ExternalLink className="w-4 h-4 text-white" />
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="p-4 sm:p-5 flex-1 flex flex-col">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-600/10 to-cyan-500/10 border border-emerald-600/20">
+              {getRoleIcon(project.projectRole)}
+            </div>
+            <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-emerald-400 transition-colors line-clamp-1 flex-1">
+              {project.projectName}
+            </h3>
+          </div>
+
+          <div className="flex items-center gap-3 text-xs text-gray-400 mb-4 flex-wrap">
+            <div className="flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{project.projectDuration}</span>
+            </div>
+            <span className="text-gray-600 hidden sm:inline">•</span>
+            <div className="flex items-center gap-1">
+              <Briefcase className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="line-clamp-1">{project.projectRole}</span>
+            </div>
+          </div>
+
+          <p className="text-gray-400 text-sm leading-relaxed mb-4 line-clamp-2 flex-1">
+            {project.projectDescription?.[0]}
+          </p>
+
+          <div className="mb-4">
+            <div className="flex flex-wrap gap-1.5">
+              {project.projectTechStack?.slice(0, 3).map((tech) => (
+                <span key={tech} className="px-2.5 py-1 bg-slate-800/60 rounded-md text-xs text-emerald-400 font-semibold border border-slate-700">
+                  {tech}
+                </span>
+              ))}
+              {project.projectTechStack?.length > 3 && (
+                <span className="px-2.5 py-1 bg-slate-800/60 rounded-md text-xs text-gray-500 font-medium border border-slate-700">
+                  +{project.projectTechStack.length - 3}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={() => onOpenModal(project)}
+            className="mt-auto w-full py-2.5 cursor-pointer bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 rounded-xl font-semibold text-white text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-transform duration-200 transform-gpu hover:scale-[1.02] active:scale-95"
+          >
+            <span>Explore Details</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+});
+
+ProjectCard.displayName = 'ProjectCard';
+
+// Memoized Stats Card Component
+const StatsCard = React.memo(({ icon: Icon, value, label, color, delay }) => {
+  return (
+    <motion.div
+      whileHover={{ scale: 1.05, y: -2 }}
+      className={`px-4 py-3 sm:px-5 sm:py-4 bg-gradient-to-br from-${color}-600/10 to-${color}-600/20 rounded-xl backdrop-blur-sm border border-${color}-600/30 group cursor-pointer flex-1 min-w-[150px] max-w-[200px]`}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className={`p-2 rounded-lg bg-${color}-600/20`}>
+          <Icon className={`w-4 h-4 sm:w-5 sm:h-5 text-${color}-400`} />
+        </div>
+        <motion.span
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          className={`text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-${color}-400 to-${color === 'emerald' ? 'cyan' : color === 'cyan' ? 'blue' : color === 'amber' ? 'orange' : 'purple'}-400 bg-clip-text text-transparent`}
+        >
+          {value}
+        </motion.span>
+      </div>
+      <div className="text-xs sm:text-sm text-gray-300 font-medium">{label}</div>
+      <div className={`h-1 bg-${color}-600/30 rounded-full mt-2 overflow-hidden`}>
+        <motion.div
+          className={`h-full bg-gradient-to-r from-${color}-500 to-${color === 'emerald' ? 'cyan' : color === 'cyan' ? 'blue' : color === 'amber' ? 'orange' : 'purple'}-500`}
+          initial={{ width: 0 }}
+          animate={{ width: "100%" }}
+          transition={{ duration: 1, delay }}
+        />
+      </div>
+    </motion.div>
+  );
+});
+
+StatsCard.displayName = 'StatsCard';
 
 const ProjectsSection = () => {
   const dispatch = useDispatch();
@@ -129,6 +298,16 @@ const ProjectsSection = () => {
   useEffect(() => {
     dispatch(fetchProjects());
   }, [dispatch]);
+
+  // Memoized stats calculations - only recalculate when projects change
+  const stats = useMemo(() => {
+    const totalProjects = projects.length;
+    const totalTechnologies = new Set(projects.flatMap(p => p.projectTechStack || [])).size;
+    const totalClients = new Set(projects.map(p => p.projectClient)).size;
+    const totalFeatures = projects.reduce((acc, p) => acc + (p.projectFeatures?.length || 0), 0);
+    
+    return { totalProjects, totalTechnologies, totalClients, totalFeatures };
+  }, [projects]);
 
   const openModal = useCallback((project) => {
     lastFocusedElement.current = document.activeElement;
@@ -187,19 +366,13 @@ const ProjectsSection = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, [isModalOpen, closeModal]);
 
-  const getRoleIcon = (role) => {
+  const getRoleIcon = useCallback((role) => {
     const k = (role || "").toLowerCase();
     if (k.includes("full stack")) return <Layers className="w-4 h-4" />;
     if (k.includes("backend")) return <Server className="w-4 h-4" />;
     if (k.includes("frontend")) return <Palette className="w-4 h-4" />;
     return <Code2 className="w-4 h-4" />;
-  };
-
-  // Calculate stats
-  const totalProjects = projects.length;
-  const totalTechnologies = new Set(projects.flatMap(p => p.projectTechStack || [])).size;
-  const totalClients = new Set(projects.map(p => p.projectClient)).size;
-  const totalFeatures = projects.reduce((acc, p) => acc + (p.projectFeatures?.length || 0), 0);
+  }, []);
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 overflow-hidden">
@@ -234,11 +407,13 @@ const ProjectsSection = () => {
               >
                 <div className="relative p-3 sm:p-3 bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 rounded-2xl backdrop-blur-lg border border-emerald-400/20">
                   <Rocket className="w-7 h-7 sm:w-9 sm:h-9 text-emerald-300" />
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-emerald-500/30 to-cyan-500/30 rounded-2xl blur-xl"
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  />
+                  {!prefersReducedMotion && (
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-emerald-500/30 to-cyan-500/30 rounded-2xl blur-xl"
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
+                  )}
                 </div>
 
                 <h1 className="text-3xl sm:text-3xl md:text-4xl lg:text-5xl font-black leading-tight text-balance max-w-full">
@@ -247,13 +422,15 @@ const ProjectsSection = () => {
                   </span>
                 </h1>
 
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                  className="hidden sm:block"
-                >
-                  <Sparkles className="w-7 h-7 sm:w-10 sm:h-10 text-cyan-300" />
-                </motion.div>
+                {!prefersReducedMotion && (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                    className="hidden sm:block"
+                  >
+                    <Sparkles className="w-7 h-7 sm:w-10 sm:h-10 text-cyan-300" />
+                  </motion.div>
+                )}
               </motion.div>
 
               {/* Description */}
@@ -263,113 +440,34 @@ const ProjectsSection = () => {
 
               {/* Enhanced Stats Cards */}
               <div className="flex flex-wrap justify-center gap-3 sm:gap-4 w-full max-w-4xl mb-6">
-                <motion.div
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  className="px-4 py-3 sm:px-5 sm:py-4 bg-gradient-to-br from-emerald-600/10 to-emerald-600/20 rounded-xl backdrop-blur-sm border border-emerald-600/30 group cursor-pointer flex-1 min-w-[150px] max-w-[200px]"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="p-2 rounded-lg bg-emerald-600/20">
-                      <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
-                    </div>
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent"
-                    >
-                      {totalProjects}
-                    </motion.span>
-                  </div>
-                  <div className="text-xs sm:text-sm text-gray-300 font-medium">Projects</div>
-                  <div className="h-1 bg-emerald-600/30 rounded-full mt-2 overflow-hidden">
-                    <motion.div
-                      className="h-full bg-gradient-to-r from-emerald-500 to-cyan-500"
-                      initial={{ width: 0 }}
-                      animate={{ width: "100%" }}
-                      transition={{ duration: 1, delay: 0.2 }}
-                    />
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  className="px-4 py-3 sm:px-5 sm:py-4 bg-gradient-to-br from-cyan-600/10 to-cyan-600/20 rounded-xl backdrop-blur-sm border border-cyan-600/30 group cursor-pointer flex-1 min-w-[150px] max-w-[200px]"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="p-2 rounded-lg bg-cyan-600/20">
-                      <Cpu className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
-                    </div>
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent"
-                    >
-                      {totalTechnologies}+
-                    </motion.span>
-                  </div>
-                  <div className="text-xs sm:text-sm text-gray-300 font-medium">Technologies</div>
-                  <div className="h-1 bg-cyan-600/30 rounded-full mt-2 overflow-hidden">
-                    <motion.div
-                      className="h-full bg-gradient-to-r from-cyan-500 to-blue-500"
-                      initial={{ width: 0 }}
-                      animate={{ width: "100%" }}
-                      transition={{ duration: 1, delay: 0.4 }}
-                    />
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  className="px-4 py-3 sm:px-5 sm:py-4 bg-gradient-to-br from-amber-600/10 to-amber-600/20 rounded-xl backdrop-blur-sm border border-amber-600/30 group cursor-pointer flex-1 min-w-[150px] max-w-[200px]"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="p-2 rounded-lg bg-amber-600/20">
-                      <Users className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
-                    </div>
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent"
-                    >
-                      {totalClients}
-                    </motion.span>
-                  </div>
-                  <div className="text-xs sm:text-sm text-gray-300 font-medium">Clients</div>
-                  <div className="h-1 bg-amber-600/30 rounded-full mt-2 overflow-hidden">
-                    <motion.div
-                      className="h-full bg-gradient-to-r from-amber-500 to-orange-500"
-                      initial={{ width: 0 }}
-                      animate={{ width: "100%" }}
-                      transition={{ duration: 1, delay: 0.6 }}
-                    />
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  className="px-4 py-3 sm:px-5 sm:py-4 bg-gradient-to-br from-violet-600/10 to-violet-600/20 rounded-xl backdrop-blur-sm border border-violet-600/30 group cursor-pointer flex-1 min-w-[150px] max-w-[200px]"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="p-2 rounded-lg bg-violet-600/20">
-                      <Target className="w-4 h-4 sm:w-5 sm:h-5 text-violet-400" />
-                    </div>
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent"
-                    >
-                      {totalFeatures}+
-                    </motion.span>
-                  </div>
-                  <div className="text-xs sm:text-sm text-gray-300 font-medium">Features</div>
-                  <div className="h-1 bg-violet-600/30 rounded-full mt-2 overflow-hidden">
-                    <motion.div
-                      className="h-full bg-gradient-to-r from-violet-500 to-purple-500"
-                      initial={{ width: 0 }}
-                      animate={{ width: "100%" }}
-                      transition={{ duration: 1, delay: 0.8 }}
-                    />
-                  </div>
-                </motion.div>
+                <StatsCard 
+                  icon={Layers} 
+                  value={stats.totalProjects} 
+                  label="Projects" 
+                  color="emerald" 
+                  delay={0.2} 
+                />
+                <StatsCard 
+                  icon={Cpu} 
+                  value={`${stats.totalTechnologies}+`} 
+                  label="Technologies" 
+                  color="cyan" 
+                  delay={0.4} 
+                />
+                <StatsCard 
+                  icon={Users} 
+                  value={stats.totalClients} 
+                  label="Clients" 
+                  color="amber" 
+                  delay={0.6} 
+                />
+                <StatsCard 
+                  icon={Target} 
+                  value={`${stats.totalFeatures}+`} 
+                  label="Features" 
+                  color="violet" 
+                  delay={0.8} 
+                />
               </div>
             </div>
           </div>
@@ -382,96 +480,13 @@ const ProjectsSection = () => {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8"
         >
           {projects.map((project, idx) => (
-            <motion.div
+            <ProjectCard 
               key={project._id || idx}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.06 }}
-              whileHover={{ y: -8 }}
-              className="group relative transform-gpu"
-            >
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/30 to-cyan-500/30 rounded-2xl blur-md group-hover:opacity-80 transition-opacity duration-400" />
-              <div className="relative bg-gradient-to-br from-slate-900 to-slate-800 backdrop-blur-sm rounded-2xl overflow-hidden border-2 border-slate-700/60 h-full flex flex-col">
-                {project.projectImage && (
-                  <div className="relative h-40 sm:h-48 overflow-hidden">
-                    <img
-                      src={project.projectImage}
-                      alt={project.projectName}
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
-                    <div className="absolute top-3 left-3">
-                      <div className="px-3 py-1.5 rounded-full bg-emerald-500 text-white text-xs font-black shadow-lg border-2 border-emerald-600">
-                        {project.projectClient}
-                      </div>
-                    </div>
-                    <div className="absolute top-3 right-3 flex gap-2">
-                      {project.GithubLink && (
-                        <a href={project.GithubLink} target="_blank" rel="noreferrer" className="p-2 bg-slate-900/90 rounded-lg hover:bg-emerald-600 transition-colors shadow">
-                          <Github className="w-4 h-4 text-white" />
-                        </a>
-                      )}
-                      {project.projectLink && (
-                        <a href={project.projectLink} target="_blank" rel="noreferrer" className="p-2 bg-slate-900/90 rounded-lg hover:bg-cyan-600 transition-colors shadow">
-                          <ExternalLink className="w-4 h-4 text-white" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <div className="p-4 sm:p-5 flex-1 flex flex-col">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-600/10 to-cyan-500/10 border border-emerald-600/20">
-                      {getRoleIcon(project.projectRole)}
-                    </div>
-                    <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-emerald-400 transition-colors line-clamp-1 flex-1">
-                      {project.projectName}
-                    </h3>
-                  </div>
-
-                  <div className="flex items-center gap-3 text-xs text-gray-400 mb-4 flex-wrap">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>{project.projectDuration}</span>
-                    </div>
-                    <span className="text-gray-600 hidden sm:inline">•</span>
-                    <div className="flex items-center gap-1">
-                      <Briefcase className="w-3.5 h-3.5 text-cyan-400" />
-                      <span className="line-clamp-1">{project.projectRole}</span>
-                    </div>
-                  </div>
-
-                  <p className="text-gray-400 text-sm leading-relaxed mb-4 line-clamp-2 flex-1">
-                    {project.projectDescription?.[0]}
-                  </p>
-
-                  <div className="mb-4">
-                    <div className="flex flex-wrap gap-1.5">
-                      {project.projectTechStack?.slice(0, 3).map((tech) => (
-                        <span key={tech} className="px-2.5 py-1 bg-slate-800/60 rounded-md text-xs text-emerald-400 font-semibold border border-slate-700">
-                          {tech}
-                        </span>
-                      ))}
-                      {project.projectTechStack?.length > 3 && (
-                        <span className="px-2.5 py-1 bg-slate-800/60 rounded-md text-xs text-gray-500 font-medium border border-slate-700">
-                          +{project.projectTechStack.length - 3}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => openModal(project)}
-                    className="mt-auto w-full py-2.5 cursor-pointer bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 rounded-xl font-semibold text-white text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-transform duration-200 transform-gpu hover:scale-[1.02] active:scale-95"
-                  >
-                    <span>Explore Details</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
+              project={project}
+              idx={idx}
+              onOpenModal={openModal}
+              getRoleIcon={getRoleIcon}
+            />
           ))}
         </motion.div>
       </div>
@@ -537,7 +552,7 @@ const ProjectsSection = () => {
                     <a
                       href={selectedProject.GithubLink}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noreferrer noopener"
                       className="px-3 py-2 bg-slate-800 hover:bg-emerald-600 transition-colors rounded-lg text-xs sm:text-sm flex items-center gap-2"
                     >
                       <Github className="w-4 h-4" />
@@ -548,7 +563,7 @@ const ProjectsSection = () => {
                     <a
                       href={selectedProject.projectLink}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noreferrer noopener"
                       className="px-3 py-2 bg-slate-800 hover:bg-cyan-600 transition-colors rounded-lg text-xs sm:text-sm flex items-center gap-2"
                     >
                       <ExternalLink className="w-4 h-4" />
@@ -577,6 +592,7 @@ const ProjectsSection = () => {
                         alt={selectedProject.projectName}
                         className="w-full h-48 sm:h-56 md:h-64 object-cover"
                         loading="lazy"
+                        decoding="async"
                       />
                     </div>
                   )}
@@ -665,7 +681,7 @@ const ProjectsSection = () => {
                           href={selectedProject.projectLink}
                           className="px-5 py-3 rounded-lg bg-gradient-to-r from-cyan-600 to-emerald-500 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 text-sm sm:text-base flex items-center justify-center gap-2 flex-1 sm:flex-none"
                           target="_blank"
-                          rel="noreferrer"
+                          rel="noreferrer noopener"
                         >
                           <span><ExternalLink className="w-4 h-4" /></span>
                           Visit Live Project
@@ -676,7 +692,7 @@ const ProjectsSection = () => {
                           href={selectedProject.GithubLink}
                           className="px-5 py-3 rounded-lg bg-slate-800 text-gray-200 border border-slate-700 hover:border-slate-600 transition-all duration-200 text-sm sm:text-base flex items-center justify-center gap-2 flex-1 sm:flex-none"
                           target="_blank"
-                          rel="noreferrer"
+                          rel="noreferrer noopener"
                         >
                           <span> <Github className="w-4 h-4" /></span>
                           View Source Code
@@ -693,6 +709,5 @@ const ProjectsSection = () => {
     </div>
   );
 };
-
 
 export default ProjectsSection;

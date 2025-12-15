@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo, useCallback, memo } from "react";
 import {
   Award, ExternalLink, Calendar, Clock, BookOpen,
   Sparkles, Target, ChevronRight, Layers,
@@ -11,31 +11,27 @@ import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion"
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Points, PointMaterial } from "@react-three/drei";
 
-// Color constants for consistent theme
+// Color constants
 const COLORS = {
-  primary: "#3B82F6", // Royal blue
-  secondary: "#10B981", // Emerald
-  accent: "#8B5CF6", // Violet
-  darkBg: "#0F172A", // Dark slate
-  cardBg: "#1E293B", // Slate 800
-  lightBg: "#334155", // Slate 700
-  text: "#F1F5F9", // Slate 100
-  mutedText: "#94A3B8", // Slate 400
-  gradient1: "from-[#3B82F6] via-[#10B981] to-[#8B5CF6]",
-  gradient2: "from-[#0F172A] via-[#1E293B] to-[#0F172A]",
-  gradient3: "from-[#3B82F6] to-[#10B981]",
-  gradient4: "from-[#8B5CF6] to-[#3B82F6]",
+  primary: "#3B82F6",
+  secondary: "#10B981",
+  accent: "#8B5CF6",
+  darkBg: "#0F172A",
+  cardBg: "#1E293B",
+  lightBg: "#334155",
+  text: "#F1F5F9",
+  mutedText: "#94A3B8",
 };
 
 // ==========================
-// 3D Starfield Background with updated colors
+// Optimized 3D Starfield
 // ==========================
-function StarField() {
+const StarField = memo(() => {
   const pointsRef = useRef();
-  const materialRef = useRef();
-
-  const [points] = useState(() => {
-    const count = 1000;
+  const [isMobile] = useState(() => window.innerWidth < 768);
+  
+  const points = useMemo(() => {
+    const count = isMobile ? 500 : 1000; // Reduce particles on mobile
     const positions = new Float32Array(count * 3);
     for (let i = 0; i < count * 3; i += 3) {
       positions[i] = (Math.random() - 0.5) * 100;
@@ -43,7 +39,7 @@ function StarField() {
       positions[i + 2] = (Math.random() - 0.5) * 100;
     }
     return positions;
-  });
+  }, [isMobile]);
 
   useFrame((state) => {
     if (pointsRef.current) {
@@ -63,7 +59,6 @@ function StarField() {
         />
       </bufferGeometry>
       <PointMaterial
-        ref={materialRef}
         transparent
         color="#3B82F6"
         size={0.1}
@@ -72,13 +67,25 @@ function StarField() {
       />
     </Points>
   );
-}
+});
+
+StarField.displayName = "StarField";
 
 // ==========================
-// Floating Icons Component
+// Optimized Floating Icons
 // ==========================
-const FloatingIcons = () => {
-  const icons = [Cpu, Globe, Code, Database, Cloud, Shield];
+const FloatingIcons = memo(() => {
+  const [windowSize] = useState(() => ({
+    width: window.innerWidth,
+    height: window.innerHeight
+  }));
+  
+  const isMobile = windowSize.width < 768;
+  const icons = useMemo(() => 
+    isMobile ? [Cpu, Globe, Code] : [Cpu, Globe, Code, Database, Cloud, Shield],
+    [isMobile]
+  );
+
   return (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
       {icons.map((Icon, idx) => (
@@ -86,20 +93,20 @@ const FloatingIcons = () => {
           key={idx}
           className="absolute"
           initial={{
-            x: Math.random() * window.innerWidth,
-            y: Math.random() * window.innerHeight,
+            x: Math.random() * windowSize.width,
+            y: Math.random() * windowSize.height,
             scale: 0
           }}
           animate={{
             x: [
-              Math.random() * window.innerWidth,
-              Math.random() * window.innerWidth,
-              Math.random() * window.innerWidth
+              Math.random() * windowSize.width,
+              Math.random() * windowSize.width,
+              Math.random() * windowSize.width
             ],
             y: [
-              Math.random() * window.innerHeight,
-              Math.random() * window.innerHeight,
-              Math.random() * window.innerHeight
+              Math.random() * windowSize.height,
+              Math.random() * windowSize.height,
+              Math.random() * windowSize.height
             ],
             rotate: 360,
             scale: [0, 1, 0]
@@ -111,7 +118,8 @@ const FloatingIcons = () => {
           }}
           style={{
             opacity: 0.08,
-            filter: 'blur(1px)'
+            filter: 'blur(1px)',
+            willChange: 'transform'
           }}
         >
           <Icon className="w-8 h-8 text-[#3B82F6]" />
@@ -119,7 +127,249 @@ const FloatingIcons = () => {
       ))}
     </div>
   );
-};
+});
+
+FloatingIcons.displayName = "FloatingIcons";
+
+// ==========================
+// Memoized Certification Card
+// ==========================
+const CertificationCard = memo(({ 
+  cert, 
+  index, 
+  hoveredCard, 
+  setHoveredCard, 
+  setSelectedCert,
+  formatDate 
+}) => {
+  const handleClick = useCallback(() => {
+    setSelectedCert(cert);
+  }, [cert, setSelectedCert]);
+
+  const handleHoverStart = useCallback(() => {
+    setHoveredCard(index);
+  }, [index, setHoveredCard]);
+
+  const handleHoverEnd = useCallback(() => {
+    setHoveredCard(null);
+  }, [setHoveredCard]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9, y: 50 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ delay: index * 0.1, duration: 0.5 }}
+      whileHover={{
+        scale: 1.02,
+        y: -5,
+        transition: { type: "spring", stiffness: 300 }
+      }}
+      onHoverStart={handleHoverStart}
+      onHoverEnd={handleHoverEnd}
+      onClick={handleClick}
+      className="group relative cursor-pointer"
+      style={{
+        height: '100%',
+        minHeight: '320px',
+        willChange: hoveredCard === index ? 'transform' : 'auto'
+      }}
+    >
+      <div className="h-full bg-gradient-to-br from-[#1E293B] to-[#0F172A] backdrop-blur-xl rounded-2xl border border-[#334155] overflow-hidden relative group hover:border-[#3B82F6]/50 transition-all duration-300">
+        <motion.div
+          className="absolute inset-0 rounded-2xl z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          style={{
+            background: 'conic-gradient(from 0deg, #00D4FF, #9D4EDD, #FF2E63, #00D4FF)',
+            padding: '2px',
+            WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+            WebkitMaskComposite: 'xor',
+            maskComposite: 'exclude',
+          }}
+          animate={{ rotate: hoveredCard === index ? 360 : 0 }}
+          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+        />
+
+        <div className="relative h-full p-4 sm:p-6 flex flex-col z-10">
+          <div className="flex justify-between items-start mb-4 sm:mb-6">
+            <motion.div
+              whileHover={{ rotate: 15 }}
+              className="p-2 sm:p-3 bg-gradient-to-br from-[#3B82F6]/20 to-[#8B5CF6]/20 rounded-2xl backdrop-blur-sm"
+            >
+              <Award className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+            </motion.div>
+
+            <div className="flex flex-col items-end gap-1 sm:gap-2">
+              <span className="text-xs text-[#94A3B8] bg-[#0F172A] px-2 py-1 sm:px-3 sm:py-1.5 rounded-full border border-[#3B82F6]/30 flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                {formatDate(cert.courseCompletedDate)}
+              </span>
+              <span className="text-xs text-[#3B82F6] bg-[#3B82F6]/10 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full border border-[#3B82F6]/30 flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {cert.courseDuration}
+              </span>
+            </div>
+          </div>
+
+          <h3 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 sm:mb-3 line-clamp-2">
+            <span className="bg-gradient-to-r from-white to-[#CBD5E1] bg-clip-text text-transparent">
+              {cert.courseName}
+            </span>
+          </h3>
+
+          <div className="flex items-center gap-2 mb-3 sm:mb-4">
+            <span className="text-[#8B5CF6] font-semibold text-sm">
+              {cert.courseProvider}
+            </span>
+            <span className="text-xs bg-gradient-to-r from-[#8B5CF6]/20 to-[#10B981]/20 text-[#8B5CF6] px-2 py-1 rounded-full">
+              {cert.courseMode}
+            </span>
+          </div>
+
+          {cert.keyLearnings && cert.keyLearnings[0] && (
+            <div className="mb-4 flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <BookOpen className="w-4 h-4 text-[#3B82F6]" />
+                <span className="text-sm text-[#94A3B8]">Key Learning</span>
+              </div>
+              <p className="text-sm text-[#CBD5E1] line-clamp-2">
+                {cert.keyLearnings[0]}
+              </p>
+            </div>
+          )}
+
+          <div className="mt-auto pt-3 sm:pt-4 border-t border-[#334155]">
+            <motion.div
+              whileHover={{ x: 5 }}
+              className="inline-flex items-center gap-1 sm:gap-2 text-[#3B82F6] text-sm font-semibold"
+            >
+              <span>View Details</span>
+              <ChevronRight className="w-4 h-4" />
+            </motion.div>
+          </div>
+        </div>
+
+        {hoveredCard === index && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="absolute inset-0 bg-gradient-to-t from-[#3B82F6]/10 via-transparent to-[#10B981]/10"
+            />
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="absolute -inset-3 bg-gradient-to-r from-[#3B82F6]/20 via-[#8B5CF6]/20 to-[#10B981]/20 blur-xl"
+            />
+          </>
+        )}
+      </div>
+    </motion.div>
+  );
+});
+
+CertificationCard.displayName = "CertificationCard";
+
+// ==========================
+// Loading Component
+// ==========================
+const LoadingState = memo(({ isClient }) => (
+  <div className="min-h-screen flex items-center bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] justify-center px-4">
+    <div className="text-center">
+      {isClient && (
+        <Canvas className="absolute inset-0">
+          <StarField />
+        </Canvas>
+      )}
+
+      <motion.div
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        className="relative z-10 flex flex-col items-center justify-center w-full"
+      >
+        <div className="flex flex-col items-center">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="w-32 h-32 mb-8"
+          >
+            <div className="absolute inset-0 border-4 border-transparent rounded-full"
+              style={{
+                background: 'conic-gradient(from 0deg, #3B82F6, #10B981, #8B5CF6, #3B82F6)',
+                mask: 'radial-gradient(circle, transparent 50%, black 51%)',
+                WebkitMask: 'radial-gradient(circle, transparent 50%, black 51%)'
+              }}
+            />
+            <Award className="absolute inset-0 m-auto w-16 h-16 text-white" />
+          </motion.div>
+
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: 200 }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className="h-1 bg-gradient-to-r from-[#3B82F6] via-[#10B981] to-[#8B5CF6] rounded-full"
+          />
+
+          <motion.p
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="mt-8 text-[#94A3B8] text-lg"
+          >
+            Loading Certifications...
+          </motion.p>
+        </div>
+      </motion.div>
+    </div>
+  </div>
+));
+
+LoadingState.displayName = "LoadingState";
+
+// ==========================
+// Error Component
+// ==========================
+const ErrorState = memo(({ isClient, error, onRetry }) => (
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] relative">
+    {isClient && (
+      <Canvas className="absolute inset-0">
+        <StarField />
+      </Canvas>
+    )}
+
+    <motion.div
+      initial={{ y: -50, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      className="relative z-10 text-center p-8 bg-[#1E293B]/90 backdrop-blur-xl rounded-3xl border border-red-500/30"
+    >
+      <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-red-500/20 to-red-600/20 rounded-2xl flex items-center justify-center">
+        <svg className="w-10 h-10 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+        </svg>
+      </div>
+
+      <h3 className="text-2xl font-bold text-red-400 mb-4">Error Loading Data</h3>
+      <p className="text-[#94A3B8] mb-8 max-w-md">{error}</p>
+
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={onRetry}
+        className="px-8 py-3 bg-gradient-to-r from-[#8B5CF6] via-[#3B82F6] to-[#10B981] rounded-full text-white font-bold text-lg relative overflow-hidden group"
+      >
+        <span className="relative z-10 flex items-center gap-2">
+          <Sparkles className="w-5 h-5" />
+          Try Again
+        </span>
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-[#10B981] via-[#3B82F6] to-[#8B5CF6]"
+          initial={{ x: '-100%' }}
+          whileHover={{ x: 0 }}
+          transition={{ duration: 0.3 }}
+        />
+      </motion.button>
+    </motion.div>
+  </div>
+));
+
+ErrorState.displayName = "ErrorState";
 
 // ==========================
 // Main Component
@@ -129,9 +379,7 @@ const CertificationsSection = () => {
   const { certifications, loading, error } = useSelector((state) => state.certifications);
   const [selectedCert, setSelectedCert] = useState(null);
   const [hoveredCard, setHoveredCard] = useState(null);
-  const [activeFilter, setActiveFilter] = useState('all');
   const containerRef = useRef();
-  const headerRef = useRef();
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -144,13 +392,11 @@ const CertificationsSection = () => {
     setIsClient(true);
   }, []);
 
-  // Parallax effects
   const y1 = useTransform(scrollYProgress, [0, 1], ['0%', '50%']);
   const y2 = useTransform(scrollYProgress, [0, 1], ['0%', '-30%']);
-  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.05]);
 
-  // Dynamic card columns based on screen size
   const [columns, setColumns] = useState(3);
+  
   useEffect(() => {
     const updateColumns = () => {
       const width = window.innerWidth;
@@ -160,119 +406,37 @@ const CertificationsSection = () => {
     };
 
     updateColumns();
-    window.addEventListener('resize', updateColumns);
-    return () => window.removeEventListener('resize', updateColumns);
+    const debouncedResize = debounce(updateColumns, 150);
+    window.addEventListener('resize', debouncedResize);
+    return () => window.removeEventListener('resize', debouncedResize);
   }, []);
 
   useEffect(() => {
     dispatch(fetchCertifications());
   }, [dispatch]);
 
-  const formatDate = (dateString) => {
+  const formatDate = useCallback((dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", { year: "numeric", month: "short" });
-  };
+  }, []);
 
-  // Get unique providers for filtering
-  const providers = [...new Set(certifications?.map(cert => cert.courseProvider))];
+  const handleRetry = useCallback(() => {
+    dispatch(clearError());
+  }, [dispatch]);
 
-  // Loading Animation
+  // Memoize stats calculations
+  const stats = useMemo(() => ({
+    total: certifications?.length || 0,
+    providers: new Set(certifications?.map(c => c.courseProvider)).size || 0,
+    skills: certifications?.reduce((acc, cert) => acc + (cert.keyLearnings?.length || 0), 0) || 0
+  }), [certifications]);
+
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] justify-center px-4">
-        <div className="text-center">
-          {isClient && (
-            <Canvas className="absolute inset-0">
-              <StarField />
-            </Canvas>
-          )}
-
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="relative z-10 flex flex-col items-center justify-center w-full"
-          >
-            <div className="flex flex-col items-center">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                className="w-32 h-32 mb-8"
-              >
-                <div className="absolute inset-0 border-4 border-transparent rounded-full"
-                  style={{
-                    background: 'conic-gradient(from 0deg, #3B82F6, #10B981, #8B5CF6, #3B82F6)',
-                    mask: 'radial-gradient(circle, transparent 50%, black 51%)',
-                    WebkitMask: 'radial-gradient(circle, transparent 50%, black 51%)'
-                  }}
-                />
-                <Award className="absolute inset-0 m-auto w-16 h-16 text-white" />
-              </motion.div>
-
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: 200 }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                className="h-1 bg-gradient-to-r from-[#3B82F6] via-[#10B981] to-[#8B5CF6] rounded-full"
-              />
-
-              <motion.p
-                animate={{ opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="mt-8 text-[#94A3B8] text-lg"
-              >
-                Loading Certifications...
-              </motion.p>
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    );
+    return <LoadingState isClient={isClient} />;
   }
 
-  // Error State
   if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] relative">
-        {isClient && (
-          <Canvas className="absolute inset-0">
-            <StarField />
-          </Canvas>
-        )}
-
-        <motion.div
-          initial={{ y: -50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="relative z-10 text-center p-8 bg-[#1E293B]/90 backdrop-blur-xl rounded-3xl border border-red-500/30"
-        >
-          <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-red-500/20 to-red-600/20 rounded-2xl flex items-center justify-center">
-            <svg className="w-10 h-10 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-          </div>
-
-          <h3 className="text-2xl font-bold text-red-400 mb-4">Error Loading Data</h3>
-          <p className="text-[#94A3B8] mb-8 max-w-md">{error}</p>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => dispatch(clearError())}
-            className="px-8 py-3 bg-gradient-to-r from-[#8B5CF6] via-[#3B82F6] to-[#10B981] rounded-full text-white font-bold text-lg relative overflow-hidden group"
-          >
-            <span className="relative z-10 flex items-center gap-2">
-              <Sparkles className="w-5 h-5" />
-              Try Again
-            </span>
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-[#10B981] via-[#3B82F6] to-[#8B5CF6]"
-              initial={{ x: '-100%' }}
-              whileHover={{ x: 0 }}
-              transition={{ duration: 0.3 }}
-            />
-          </motion.button>
-        </motion.div>
-      </div>
-    );
+    return <ErrorState isClient={isClient} error={error} onRetry={handleRetry} />;
   }
 
   return (
@@ -280,7 +444,6 @@ const CertificationsSection = () => {
       ref={containerRef}
       className="min-h-screen bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] text-[#F1F5F9] relative overflow-hidden"
     >
-      {/* 3D Starfield Background */}
       {isClient && (
         <div className="fixed inset-0 z-0">
           <Canvas camera={{ position: [0, 0, 1] }}>
@@ -289,24 +452,19 @@ const CertificationsSection = () => {
         </div>
       )}
 
-      {/* Floating Icons */}
       <FloatingIcons />
 
-      {/* Animated Gradient Orbs */}
       <motion.div
-        style={{ y: y1 }}
+        style={{ y: y1, willChange: 'transform' }}
         className="fixed top-0 left-1/4 w-[800px] h-[800px] bg-gradient-to-r from-[#3B82F6]/10 via-[#10B981]/10 to-[#8B5CF6]/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none"
       />
       <motion.div
-        style={{ y: y2 }}
+        style={{ y: y2, willChange: 'transform' }}
         className="fixed bottom-0 right-1/4 w-[600px] h-[600px] bg-gradient-to-r from-[#8B5CF6]/10 via-[#3B82F6]/10 to-[#10B981]/10 rounded-full blur-3xl translate-x-1/2 translate-y-1/2 pointer-events-none"
       />
 
-      {/* Main Content */}
       <div className="relative z-10">
-        {/* Compact Header Section */}
         <motion.header
-          ref={headerRef}
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -314,7 +472,6 @@ const CertificationsSection = () => {
         >
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col items-center text-center">
-              {/* Title with Icon */}
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -330,18 +487,16 @@ const CertificationsSection = () => {
                   />
                 </div>
                 <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">
-                  <span className={`bg-gradient-to-r from-[#00D4FF] via-[#9D4EDD] to-[#FF2E63] bg-clip-text text-transparent`}>
+                  <span className="bg-gradient-to-r from-[#00D4FF] via-[#9D4EDD] to-[#FF2E63] bg-clip-text text-transparent">
                     Certifications
                   </span>
                 </h1>
               </motion.div>
 
-              {/* Description */}
               <p className="text-[#94A3B8] text-sm sm:text-base md:text-lg max-w-2xl mb-6 sm:mb-8 leading-relaxed">
                 Professional credentials and achievements across modern technologies
               </p>
 
-              {/* Compact Stats */}
               <div className="flex flex-wrap justify-center gap-3 sm:gap-4 w-full max-w-2xl">
                 <motion.div
                   whileHover={{ scale: 1.05, y: -2 }}
@@ -350,7 +505,7 @@ const CertificationsSection = () => {
                   <div className="flex items-center gap-2">
                     <Layers className="w-4 h-4 sm:w-5 sm:h-5 text-[#3B82F6]" />
                     <span className="text-lg sm:text-xl font-bold text-white">
-                      {certifications?.length || 0}
+                      {stats.total}
                     </span>
                     <span className="text-[#94A3B8] text-sm">Certificates</span>
                   </div>
@@ -363,7 +518,7 @@ const CertificationsSection = () => {
                   <div className="flex items-center gap-2">
                     <Globe className="w-4 h-4 sm:w-5 sm:h-5 text-[#8B5CF6]" />
                     <span className="text-lg sm:text-xl font-bold text-white">
-                      {new Set(certifications?.map(c => c.courseProvider)).size || 0}
+                      {stats.providers}
                     </span>
                     <span className="text-[#94A3B8] text-sm">Providers</span>
                   </div>
@@ -376,7 +531,7 @@ const CertificationsSection = () => {
                   <div className="flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-[#10B981]" />
                     <span className="text-lg sm:text-xl font-bold text-white">
-                      {certifications?.reduce((acc, cert) => acc + (cert.keyLearnings?.length || 0), 0) || 0}
+                      {stats.skills}
                     </span>
                     <span className="text-[#94A3B8] text-sm">Skills Gained</span>
                   </div>
@@ -386,136 +541,25 @@ const CertificationsSection = () => {
           </div>
         </motion.header>
 
-        {/* Main Content Grid */}
         <main className="px-4 sm:px-6 lg:px-8 pb-16 sm:pb-20 md:pb-24">
           <div className="max-w-7xl mx-auto">
-            {/* Certifications Grid */}
             <div className={`grid gap-4 sm:gap-6 ${columns === 1 ? 'grid-cols-1' :
               columns === 2 ? 'grid-cols-1 sm:grid-cols-2' :
                 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
               }`}>
               {certifications?.map((cert, index) => (
-                <motion.div
+                <CertificationCard
                   key={cert._id}
-                  initial={{ opacity: 0, scale: 0.9, y: 50 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ delay: index * 0.1, duration: 0.5 }}
-                  whileHover={{
-                    scale: 1.02,
-                    y: -5,
-                    transition: { type: "spring", stiffness: 300 }
-                  }}
-                  onHoverStart={() => setHoveredCard(index)}
-                  onHoverEnd={() => setHoveredCard(null)}
-                  onClick={() => setSelectedCert(cert)}
-                  className="group relative cursor-pointer"
-                  style={{
-                    height: '100%',
-                    minHeight: '320px'
-                  }}
-                >
-                  {/* Card Container */}
-                  <div className="h-full bg-gradient-to-br from-[#1E293B] to-[#0F172A] backdrop-blur-xl rounded-2xl border border-[#334155] overflow-hidden relative group hover:border-[#3B82F6]/50 transition-all duration-300">
-                    {/* Animated Border */}
-                    <motion.div
-                      className="absolute inset-0 rounded-2xl z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                      style={{
-                        background: 'conic-gradient(from 0deg, #00D4FF, #9D4EDD, #FF2E63, #00D4FF)',
-                        padding: '2px',
-                        WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
-                        WebkitMaskComposite: 'xor',
-                        maskComposite: 'exclude',
-                      }}
-                      animate={{ rotate: hoveredCard === index ? 360 : 0 }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                    />
-
-                    {/* Card Content */}
-                    <div className="relative h-full p-4 sm:p-6 flex flex-col z-10">
-                      {/* Header */}
-                      <div className="flex justify-between items-start mb-4 sm:mb-6">
-                        <motion.div
-                          whileHover={{ rotate: 15 }}
-                          className="p-2 sm:p-3 bg-gradient-to-br from-[#3B82F6]/20 to-[#8B5CF6]/20 rounded-2xl backdrop-blur-sm"
-                        >
-                          <Award className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                        </motion.div>
-
-                        <div className="flex flex-col items-end gap-1 sm:gap-2">
-                          <span className="text-xs text-[#94A3B8] bg-[#0F172A] px-2 py-1 sm:px-3 sm:py-1.5 rounded-full border border-[#3B82F6]/30 flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {formatDate(cert.courseCompletedDate)}
-                          </span>
-                          <span className="text-xs text-[#3B82F6] bg-[#3B82F6]/10 px-2 py-1 sm:px-3 sm:py-1.5 rounded-full border border-[#3B82F6]/30 flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {cert.courseDuration}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Title */}
-                      <h3 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 sm:mb-3 line-clamp-2">
-                        <span className="bg-gradient-to-r from-white to-[#CBD5E1] bg-clip-text text-transparent">
-                          {cert.courseName}
-                        </span>
-                      </h3>
-
-                      {/* Provider */}
-                      <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                        <span className="text-[#8B5CF6] font-semibold text-sm">
-                          {cert.courseProvider}
-                        </span>
-                        <span className="text-xs bg-gradient-to-r from-[#8B5CF6]/20 to-[#10B981]/20 text-[#8B5CF6] px-2 py-1 rounded-full">
-                          {cert.courseMode}
-                        </span>
-                      </div>
-
-                      {/* Preview */}
-                      {cert.keyLearnings && cert.keyLearnings[0] && (
-                        <div className="mb-4 flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <BookOpen className="w-4 h-4 text-[#3B82F6]" />
-                            <span className="text-sm text-[#94A3B8]">Key Learning</span>
-                          </div>
-                          <p className="text-sm text-[#CBD5E1] line-clamp-2">
-                            {cert.keyLearnings[0]}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Footer */}
-                      <div className="mt-auto pt-3 sm:pt-4 border-t border-[#334155]">
-                        <motion.div
-                          whileHover={{ x: 5 }}
-                          className="inline-flex items-center gap-1 sm:gap-2 text-[#3B82F6] text-sm font-semibold"
-                        >
-                          <span>View Details</span>
-                          <ChevronRight className="w-4 h-4" />
-                        </motion.div>
-                      </div>
-                    </div>
-
-                    {/* Hover Effects */}
-                    {hoveredCard === index && (
-                      <>
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="absolute inset-0 bg-gradient-to-t from-[#3B82F6]/10 via-transparent to-[#10B981]/10"
-                        />
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          className="absolute -inset-3 bg-gradient-to-r from-[#3B82F6]/20 via-[#8B5CF6]/20 to-[#10B981]/20 blur-xl"
-                        />
-                      </>
-                    )}
-                  </div>
-                </motion.div>
+                  cert={cert}
+                  index={index}
+                  hoveredCard={hoveredCard}
+                  setHoveredCard={setHoveredCard}
+                  setSelectedCert={setSelectedCert}
+                  formatDate={formatDate}
+                />
               ))}
             </div>
 
-            {/* Empty State */}
             {(!certifications || certifications.length === 0) && (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -537,7 +581,6 @@ const CertificationsSection = () => {
         </main>
       </div>
 
-      {/* Detailed Modal */}
       <AnimatePresence>
         {selectedCert && (
           <motion.div
@@ -554,7 +597,6 @@ const CertificationsSection = () => {
               className="bg-gradient-to-br from-[#1E293B]/95 to-[#0F172A]/95 rounded-3xl p-6 sm:p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-[#3B82F6]/20 backdrop-blur-xl"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header with Fixed Close Button */}
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6 sm:mb-8 relative">
                 <div className="flex-1 pr-10 sm:pr-0">
                   <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-[#3B82F6] via-[#10B981] to-[#8B5CF6] bg-clip-text text-transparent mb-2">
@@ -572,7 +614,6 @@ const CertificationsSection = () => {
                   </div>
                 </div>
 
-                {/* Close Button - Fixed for Mobile */}
                 <motion.button
                   whileHover={{ rotate: 90, scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
@@ -592,7 +633,6 @@ const CertificationsSection = () => {
                 </motion.button>
               </div>
 
-              {/* Key Learnings */}
               {selectedCert.keyLearnings && selectedCert.keyLearnings.length > 0 && (
                 <div className="mb-6 sm:mb-8">
                   <h4 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6 flex items-center gap-2">
@@ -620,7 +660,6 @@ const CertificationsSection = () => {
                 </div>
               )}
 
-              {/* Certificate Link */}
               {selectedCert.certificatePdf && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -649,42 +688,51 @@ const CertificationsSection = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <style jsx='true'>{`
+        .line-clamp-2 {
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        ::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+          background: rgba(30, 41, 59, 0.5);
+        }
+
+        ::-webkit-scrollbar-thumb {
+          background: linear-gradient(to bottom, #3B82F6, #10B981, #8B5CF6);
+          border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(to bottom, #8B5CF6, #3B82F6, #10B981);
+        }
+
+        html {
+          scroll-behavior: smooth;
+        }
+      `}</style>
     </div>
   );
 };
 
+// Debounce utility
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
 export default CertificationsSection;
-
-<style jsx>{`
-  /* Responsive utilities */
-  .line-clamp-2 {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  /* Custom scrollbar with updated colors */
-  ::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: rgba(30, 41, 59, 0.5);
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: linear-gradient(to bottom, #3B82F6, #10B981, #8B5CF6);
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(to bottom, #8B5CF6, #3B82F6, #10B981);
-  }
-
-  /* Smooth scrolling */
-  html {
-    scroll-behavior: smooth;
-  }
-
-`}</style>

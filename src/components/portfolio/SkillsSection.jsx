@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, memo, useCallback, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchSkills, clearError } from "../../store/slices/skillsSlice";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   Code2, Type, Server, Layers,
   Palette, FileCode, Database,
@@ -21,7 +21,6 @@ const iconMap = {
   cloud: Cloud,
   uncategorized: Hexagon,
 };
-
 
 // Advanced color themes with geometric patterns
 const colorThemes = [
@@ -109,12 +108,14 @@ const categoryConfig = {
   default: generateRandomTheme(),
 };
 
-// Geometric Shape Component
+// Geometric Shape Component - Optimized
 const GeometricShape = memo(({ type, theme, isHovered }) => {
+  const shouldReduceMotion = useReducedMotion();
+  
   const shapes = {
     triangle: (
       <motion.div
-        animate={isHovered ? { rotate: 360 } : { rotate: 0 }}
+        animate={!shouldReduceMotion && isHovered ? { rotate: 360 } : { rotate: 0 }}
         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
         className="absolute w-24 h-24 opacity-5"
         style={{
@@ -125,7 +126,7 @@ const GeometricShape = memo(({ type, theme, isHovered }) => {
     ),
     hexagon: (
       <motion.div
-        animate={isHovered ? { scale: [1, 1.1, 1] } : { scale: 1 }}
+        animate={!shouldReduceMotion && isHovered ? { scale: [1, 1.1, 1] } : { scale: 1 }}
         transition={{ duration: 3, repeat: Infinity }}
         className="absolute w-20 h-24 opacity-10"
         style={{
@@ -136,7 +137,7 @@ const GeometricShape = memo(({ type, theme, isHovered }) => {
     ),
     diamond: (
       <motion.div
-        animate={isHovered ? { rotate: [0, 45, 0] } : { rotate: 45 }}
+        animate={!shouldReduceMotion && isHovered ? { rotate: [0, 45, 0] } : { rotate: 45 }}
         transition={{ duration: 10, repeat: Infinity }}
         className="absolute w-16 h-16 opacity-10"
         style={{
@@ -147,7 +148,7 @@ const GeometricShape = memo(({ type, theme, isHovered }) => {
     ),
     star: (
       <motion.div
-        animate={isHovered ? { rotate: 360 } : { rotate: 0 }}
+        animate={!shouldReduceMotion && isHovered ? { rotate: 360 } : { rotate: 0 }}
         transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
         className="absolute w-20 h-20 opacity-10"
         style={{
@@ -158,7 +159,7 @@ const GeometricShape = memo(({ type, theme, isHovered }) => {
     ),
     circle: (
       <motion.div
-        animate={isHovered ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+        animate={!shouldReduceMotion && isHovered ? { scale: [1, 1.2, 1] } : { scale: 1 }}
         transition={{ duration: 4, repeat: Infinity }}
         className="absolute w-20 h-20 rounded-full opacity-10"
         style={{
@@ -168,7 +169,7 @@ const GeometricShape = memo(({ type, theme, isHovered }) => {
     ),
     wave: (
       <motion.div
-        animate={isHovered ? { x: [-20, 20, -20] } : { x: 0 }}
+        animate={!shouldReduceMotion && isHovered ? { x: [-20, 20, -20] } : { x: 0 }}
         transition={{ duration: 5, repeat: Infinity }}
         className="absolute w-32 h-16 opacity-10"
         style={{
@@ -184,7 +185,7 @@ const GeometricShape = memo(({ type, theme, isHovered }) => {
 
 GeometricShape.displayName = 'GeometricShape';
 
-// Background Pattern Component
+// Background Pattern Component - Optimized
 const BackgroundPattern = memo(({ type, theme }) => {
   const patterns = {
     grid: (
@@ -241,10 +242,12 @@ const BackgroundPattern = memo(({ type, theme }) => {
 
 BackgroundPattern.displayName = 'BackgroundPattern';
 
-// Enhanced Skill Card Component
+// Enhanced Skill Card Component - Optimized
 const SkillCard = memo(({ skill, theme, index }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const shouldReduceMotion = useReducedMotion();
+  const rafRef = useRef();
 
   const Icon = useMemo(() => {
     const nameKey = (skill.skillName || "").toLowerCase();
@@ -253,20 +256,40 @@ const SkillCard = memo(({ skill, theme, index }) => {
   }, [skill.skillName, skill.skillCategory]);
 
   const handleMouseMove = useCallback((e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 20;
-    const y = ((e.clientY - rect.top) / rect.height - 0.5) * 20;
-    setMousePosition({ x, y });
-  }, []);
+    if (shouldReduceMotion) return;
+    
+    // Use RAF to throttle mouse move updates
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+    }
+    
+    rafRef.current = requestAnimationFrame(() => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width - 0.5) * 20;
+      const y = ((e.clientY - rect.top) / rect.height - 0.5) * 20;
+      setMousePosition({ x, y });
+    });
+  }, [shouldReduceMotion]);
 
   const handleMouseLeave = useCallback(() => {
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+    }
     setMousePosition({ x: 0, y: 0 });
     setIsHovered(false);
   }, []);
 
-  // Generate floating particles
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
+
+  // Generate floating particles - Reduced count
   const particles = useMemo(() =>
-    Array.from({ length: 15 }, (_, i) => ({
+    Array.from({ length: 8 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
@@ -285,8 +308,8 @@ const SkillCard = memo(({ skill, theme, index }) => {
         y: 0,
         scale: 1,
         rotateY: 0,
-        rotateX: -mousePosition.y * 0.5,
-        rotateZ: mousePosition.x * 0.3,
+        rotateX: !shouldReduceMotion ? -mousePosition.y * 0.5 : 0,
+        rotateZ: !shouldReduceMotion ? mousePosition.x * 0.3 : 0,
       }}
       exit={{
         opacity: 0,
@@ -317,6 +340,7 @@ const SkillCard = memo(({ skill, theme, index }) => {
       className="group relative h-full perspective-[1200px]"
       style={{
         transformStyle: 'preserve-3d',
+        willChange: isHovered ? 'transform' : 'auto'
       }}
     >
       {/* Card Container */}
@@ -330,7 +354,7 @@ const SkillCard = memo(({ skill, theme, index }) => {
         {/* Animated Gradient Border */}
         <motion.div
           className="absolute inset-0 rounded-3xl p-[2px]"
-          animate={isHovered ? {
+          animate={!shouldReduceMotion && isHovered ? {
             background: [
               `linear-gradient(45deg, transparent 40%, ${theme.border.replace('border-', '').replace('/40', '')} 50%, transparent 60%)`,
               `linear-gradient(135deg, transparent 40%, ${theme.border.replace('border-', '').replace('/40', '')} 50%, transparent 60%)`,
@@ -344,58 +368,46 @@ const SkillCard = memo(({ skill, theme, index }) => {
           <div className="absolute inset-0 bg-gradient-to-br from-slate-900/90 via-slate-900/95 to-slate-900 rounded-3xl" />
         </motion.div>
 
-        {/* Floating Particles - Enhanced */}
-        <div className="absolute inset-0 overflow-hidden">
-          {particles.map((particle) => (
-            <motion.div
-              key={particle.id}
-              className={`absolute rounded-full bg-gradient-to-r ${theme.gradient}`}
-              style={{
-                left: `${particle.x}%`,
-                top: `${particle.y}%`,
-                width: `${particle.size}px`,
-                height: `${particle.size}px`,
-                opacity: 0.3,
-              }}
-              animate={isHovered ? {
-                y: [0, -150, 0],
-                x: [0, Math.random() * 100 - 50, 0],
-                scale: [1, 1.8, 0],
-                opacity: [0.3, 1, 0],
-              } : {}}
-              transition={{
-                duration: particle.duration,
-                delay: particle.delay,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-          ))}
-        </div>
+        {/* Floating Particles - Only render on hover */}
+        {!shouldReduceMotion && isHovered && (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {particles.map((particle) => (
+              <motion.div
+                key={particle.id}
+                className={`absolute rounded-full bg-gradient-to-r ${theme.gradient}`}
+                style={{
+                  left: `${particle.x}%`,
+                  top: `${particle.y}%`,
+                  width: `${particle.size}px`,
+                  height: `${particle.size}px`,
+                  opacity: 0.3,
+                }}
+                animate={{
+                  y: [0, -150, 0],
+                  x: [0, Math.random() * 100 - 50, 0],
+                  scale: [1, 1.8, 0],
+                  opacity: [0.3, 1, 0],
+                }}
+                transition={{
+                  duration: particle.duration,
+                  delay: particle.delay,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+            ))}
+          </div>
+        )}
 
-        {/* Geometric Shapes - Enhanced */}
-        <div className="absolute inset-0 overflow-hidden">
+        {/* Geometric Shapes */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <GeometricShape type={theme.shape} theme={theme} isHovered={isHovered} />
-          <motion.div
-            className="absolute bottom-4 right-4"
-            animate={isHovered ? { scale: [1, 1.2, 1], rotate: [0, 90, 0] } : { scale: 1, rotate: 0 }}
-            transition={{ duration: 3, repeat: Infinity }}
-          >
-            <GeometricShape type={theme.shape} theme={theme} isHovered={isHovered} />
-          </motion.div>
-          <motion.div
-            className="absolute top-4 left-4"
-            animate={isHovered ? { scale: [0.8, 1, 0.8], rotate: [0, -90, 0] } : { scale: 0.8, rotate: 0 }}
-            transition={{ duration: 4, repeat: Infinity, delay: 0.5 }}
-          >
-            <GeometricShape type={theme.shape} theme={theme} isHovered={isHovered} />
-          </motion.div>
         </div>
 
-        {/* Inner Glow - Enhanced */}
+        {/* Inner Glow */}
         <motion.div
           className={`absolute inset-0 rounded-3xl ${theme.glow}`}
-          animate={isHovered ? {
+          animate={!shouldReduceMotion && isHovered ? {
             opacity: [0.3, 0.8, 0.3],
             scale: [1, 1.02, 1]
           } : { opacity: 0 }}
@@ -414,9 +426,9 @@ const SkillCard = memo(({ skill, theme, index }) => {
           {/* Header */}
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-4">
-              {/* Animated Icon Orb - Enhanced */}
+              {/* Animated Icon Orb */}
               <motion.div
-                animate={isHovered ? {
+                animate={!shouldReduceMotion && isHovered ? {
                   rotate: 360,
                   scale: [1, 1.1, 1],
                   y: [0, -5, 0]
@@ -431,21 +443,11 @@ const SkillCard = memo(({ skill, theme, index }) => {
                 {/* Outer ring */}
                 <motion.div
                   className={`absolute inset-0 rounded-full border-2 ${theme.border}`}
-                  animate={isHovered ? {
+                  animate={!shouldReduceMotion && isHovered ? {
                     scale: [1, 1.3, 1],
                     opacity: [0.5, 1, 0.5]
                   } : { scale: 1 }}
                   transition={{ duration: 2, repeat: Infinity }}
-                />
-
-                {/* Pulse ring */}
-                <motion.div
-                  className={`absolute inset-0 rounded-full border ${theme.border}`}
-                  animate={isHovered ? {
-                    scale: [1, 2, 1],
-                    opacity: [1, 0, 1]
-                  } : {}}
-                  transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
                 />
 
                 {/* Icon container */}
@@ -458,15 +460,16 @@ const SkillCard = memo(({ skill, theme, index }) => {
                       alt={skill.skillName}
                       className="relative w-6 h-6 object-contain filter brightness-110"
                       onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                      animate={isHovered ? {
+                      animate={!shouldReduceMotion && isHovered ? {
                         scale: [1, 1.3, 1],
                         rotate: [0, 15, -15, 0]
                       } : {}}
                       transition={{ duration: 2, repeat: Infinity }}
+                      loading="lazy"
                     />
                   ) : (
                     <motion.div
-                      animate={isHovered ? {
+                      animate={!shouldReduceMotion && isHovered ? {
                         scale: [1, 1.3, 1],
                         rotate: [0, 15, -15, 0]
                       } : {}}
@@ -478,7 +481,7 @@ const SkillCard = memo(({ skill, theme, index }) => {
                 </div>
               </motion.div>
 
-              {/* Title and Category - Enhanced */}
+              {/* Title and Category */}
               <div className="overflow-hidden flex-1 min-w-0">
                 <motion.h3
                   animate={isHovered ? { x: 8 } : { x: 0 }}
@@ -495,7 +498,7 @@ const SkillCard = memo(({ skill, theme, index }) => {
                   className={`text-sm font-semibold ${theme.icon} flex items-center gap-2`}
                 >
                   <motion.div
-                    animate={isHovered ? { scale: [1, 1.5, 1] } : { scale: 1 }}
+                    animate={!shouldReduceMotion && isHovered ? { scale: [1, 1.5, 1] } : { scale: 1 }}
                     transition={{ duration: 2, repeat: Infinity }}
                     className={`w-2 h-2 rounded-full bg-gradient-to-r ${theme.gradient}`}
                   />
@@ -504,7 +507,7 @@ const SkillCard = memo(({ skill, theme, index }) => {
               </div>
             </div>
 
-            {/* Level Badge with Enhanced Animation */}
+            {/* Level Badge */}
             {skill.level && (
               <motion.div
                 initial={{ scale: 0, rotate: -180 }}
@@ -516,20 +519,11 @@ const SkillCard = memo(({ skill, theme, index }) => {
                 <div className="text-xs font-bold text-center">
                   {skill.level}
                 </div>
-                <motion.div
-                  className="absolute inset-0 rounded-full border-2"
-                  style={{ borderColor: theme.border.replace('border-', '').replace('/40', '') }}
-                  animate={isHovered ? {
-                    scale: [1, 1.3, 1],
-                    opacity: [0.5, 1, 0.5]
-                  } : {}}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                />
               </motion.div>
             )}
           </div>
 
-          {/* Description - Enhanced */}
+          {/* Description */}
           {skill.description && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
@@ -543,7 +537,7 @@ const SkillCard = memo(({ skill, theme, index }) => {
             </motion.div>
           )}
 
-          {/* Tags with Enhanced Floating Animation */}
+          {/* Tags */}
           {skill.tags && skill.tags.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -580,7 +574,7 @@ const SkillCard = memo(({ skill, theme, index }) => {
             </motion.div>
           )}
 
-          {/* Bottom Accent Line with Enhanced Animation */}
+          {/* Bottom Accent Line */}
           <div className="mt-4">
             <motion.div
               className={`h-1 rounded-full bg-gradient-to-r ${theme.gradient}`}
@@ -590,7 +584,7 @@ const SkillCard = memo(({ skill, theme, index }) => {
             >
               <motion.div
                 className="h-full rounded-full bg-white/40"
-                animate={isHovered ? {
+                animate={!shouldReduceMotion && isHovered ? {
                   x: ['-100%', '100%', '-100%'],
                   width: ['20%', '40%', '20%']
                 } : {}}
@@ -602,64 +596,45 @@ const SkillCard = memo(({ skill, theme, index }) => {
               />
             </motion.div>
           </div>
-
-          {/* Floating Indicator - Enhanced */}
-          <motion.div
-            className={`absolute -bottom-2 left-1/2 w-8 h-8 rounded-full bg-gradient-to-r ${theme.gradient} opacity-0 group-hover:opacity-100`}
-            animate={isHovered ? {
-              y: [0, -15, 0],
-              scale: [1, 0.8, 1],
-              rotate: [0, 180, 360]
-            } : {}}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-            style={{ x: "-50%" }}
-          />
         </div>
 
-        {/* Corner Decorative Elements - Enhanced */}
-        <div className="absolute top-0 right-0 w-24 h-24">
+        {/* Corner Decorative Elements */}
+        <div className="absolute top-0 right-0 w-24 h-24 pointer-events-none">
           <motion.div
             className={`absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 ${theme.border} rounded-tr-xl`}
-            animate={isHovered ? {
+            animate={!shouldReduceMotion && isHovered ? {
               scale: [1, 1.3, 1],
               rotate: [0, 90, 180, 270, 360]
             } : {}}
             transition={{ duration: 3, repeat: Infinity }}
           />
         </div>
-        <div className="absolute bottom-0 left-0 w-24 h-24">
+        <div className="absolute bottom-0 left-0 w-24 h-24 pointer-events-none">
           <motion.div
             className={`absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 ${theme.border} rounded-bl-xl`}
-            animate={isHovered ? {
+            animate={!shouldReduceMotion && isHovered ? {
               scale: [1, 1.3, 1],
               rotate: [0, -90, -180, -270, -360]
             } : {}}
             transition={{ duration: 3, repeat: Infinity, delay: 1 }}
           />
         </div>
-
-        {/* Edge Glow Effect */}
-        <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
-          <motion.div
-            className={`absolute inset-0 border-2 ${theme.border} rounded-3xl`}
-            animate={isHovered ? { opacity: [0.1, 0.3, 0.1] } : { opacity: 0 }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-        </div>
       </div>
     </motion.div>
   );
+}, (prevProps, nextProps) => {
+  // Custom comparison for better performance
+  return prevProps.skill._id === nextProps.skill._id &&
+         prevProps.theme === nextProps.theme &&
+         prevProps.index === nextProps.index;
 });
 
 SkillCard.displayName = 'SkillCard';
 
-// Show More Button Component
+// Show More Button Component - Optimized
 const ShowMoreButton = memo(({ onClick, theme, showLess = false, disabled = false }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
 
   return (
     <motion.button
@@ -680,24 +655,9 @@ const ShowMoreButton = memo(({ onClick, theme, showLess = false, disabled = fals
         }
       `}
     >
-      {/* Background animation for hover effect */}
-      {!disabled && (
-        <motion.div
-          className="absolute inset-0 rounded-2xl"
-          animate={isHovered ? {
-            background: [
-              `radial-gradient(circle at center, ${theme.border.replace('border-', '').replace('/40', '')} 0%, transparent 70%)`,
-              `radial-gradient(circle at center, transparent 0%, ${theme.border.replace('border-', '').replace('/40', '')} 70%, transparent 100%)`,
-              `radial-gradient(circle at center, ${theme.border.replace('border-', '').replace('/40', '')} 0%, transparent 70%)`,
-            ]
-          } : {}}
-          transition={{ duration: 3, repeat: Infinity }}
-        />
-      )}
-
       {/* Icon */}
       <motion.div
-        animate={isHovered && !disabled ? {
+        animate={!shouldReduceMotion && isHovered && !disabled ? {
           rotate: 360,
           scale: [1, 1.2, 1]
         } : {}}
@@ -715,37 +675,8 @@ const ShowMoreButton = memo(({ onClick, theme, showLess = false, disabled = fals
         {showLess ? 'Show Less' : 'Show More'}
       </span>
 
-      {/* Particles on hover */}
-      {!disabled && isHovered && (
-        <div className="absolute inset-0 overflow-hidden rounded-2xl">
-          {[...Array(8)].map((_, i) => (
-            <motion.div
-              key={i}
-              className={`absolute rounded-full bg-gradient-to-r ${theme.gradient}`}
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                width: `${Math.random() * 6 + 2}px`,
-                height: `${Math.random() * 6 + 2}px`,
-              }}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{
-                opacity: [0, 0.8, 0],
-                scale: [0, 1, 0],
-                x: [0, Math.random() * 100 - 50],
-                y: [0, Math.random() * 100 - 50]
-              }}
-              transition={{
-                duration: 1.5,
-                delay: i * 0.1
-              }}
-            />
-          ))}
-        </div>
-      )}
-
       {/* Border animation */}
-      {!disabled && (
+      {!disabled && !shouldReduceMotion && (
         <motion.div
           className="absolute inset-0 rounded-2xl border-2 pointer-events-none"
           style={{ borderColor: theme.border.replace('border-', '').replace('/40', '') }}
@@ -770,6 +701,7 @@ const SkillsSection = () => {
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
   const [visibleSkillsCount, setVisibleSkillsCount] = useState(8);
+  const shouldReduceMotion = useReducedMotion();
 
   const skillsSectionRef = useRef(null);
   const skillsGridRef = useRef(null);
@@ -821,7 +753,7 @@ const SkillsSection = () => {
     return [...filtered].sort((a, b) => {
       const dateA = a.updatedAt ? new Date(a.updatedAt) : new Date(0);
       const dateB = b.updatedAt ? new Date(b.updatedAt) : new Date(0);
-      return dateB - dateA; // Most recent first
+      return dateB - dateA;
     });
   }, [skills, filter]);
 
@@ -833,19 +765,18 @@ const SkillsSection = () => {
     return visibleSkillsCount < filteredSkills.length;
   }, [visibleSkillsCount, filteredSkills.length]);
 
-  const getTheme = (category) => {
+  const getTheme = useCallback((category) => {
     const key = (category || "").toLowerCase();
     if (categoryConfig[key]) {
       return categoryConfig[key];
     }
     return defaultThemes[key] || generateRandomTheme();
-  };
+  }, [defaultThemes]);
 
-  const handleShowMore = () => {
+  const handleShowMore = useCallback(() => {
     const newCount = Math.min(visibleSkillsCount + 8, filteredSkills.length);
     setVisibleSkillsCount(newCount);
 
-    // If we're showing all skills, scroll to top of skills grid
     if (newCount === filteredSkills.length && skillsGridRef.current) {
       setTimeout(() => {
         skillsGridRef.current.scrollIntoView({
@@ -854,10 +785,9 @@ const SkillsSection = () => {
         });
       }, 100);
     }
-  };
+  }, [visibleSkillsCount, filteredSkills.length]);
 
-  const handleShowLess = () => {
-    // First scroll to the top of the skills section
+  const handleShowLess = useCallback(() => {
     if (skillsSectionRef.current) {
       skillsSectionRef.current.scrollIntoView({
         behavior: 'smooth',
@@ -865,11 +795,10 @@ const SkillsSection = () => {
       });
     }
 
-    // After scrolling is complete, collapse the cards
     setTimeout(() => {
       setVisibleSkillsCount(8);
-    }, 500); // Match this with scroll duration
-  };
+    }, 500);
+  }, []);
 
   if (loading) {
     return (
@@ -932,38 +861,40 @@ const SkillsSection = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-950 via-emerald-950/40 to-black">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(5)].map((_, i) => (
-          <motion.div
-            key={i}
-            animate={{
-              y: [0, -100, 0],
-              x: [0, Math.random() * 100 - 50, 0],
-              rotate: [0, 180, 360],
-            }}
-            transition={{
-              duration: 20 + i * 5,
-              repeat: Infinity,
-              ease: "linear",
-              delay: i * 2,
-            }}
-            className={`absolute w-${Math.random() * 20 + 10} h-${Math.random() * 20 + 10} rounded-full blur-2xl opacity-5`}
-            style={{
-              background: `radial-gradient(circle, ${i % 3 === 0 ? 'cyan' :
-                i % 3 === 1 ? 'purple' : 'pink'
-                } 0%, transparent 70%)`,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-            }}
-          />
-        ))}
-      </div>
+      {/* Animated background elements - Reduced count */}
+      {!shouldReduceMotion && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(3)].map((_, i) => (
+            <motion.div
+              key={i}
+              animate={{
+                y: [0, -100, 0],
+                x: [0, Math.random() * 100 - 50, 0],
+                rotate: [0, 180, 360],
+              }}
+              transition={{
+                duration: 20 + i * 5,
+                repeat: Infinity,
+                ease: "linear",
+                delay: i * 2,
+              }}
+              className="absolute w-32 h-32 rounded-full blur-2xl opacity-5"
+              style={{
+                background: `radial-gradient(circle, ${i % 3 === 0 ? 'cyan' :
+                  i % 3 === 1 ? 'purple' : 'pink'
+                  } 0%, transparent 70%)`,
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 py-12 lg:py-16 relative z-10">
-        {/* Enhanced Header with Hover Effects */}
+        {/* Enhanced Header */}
         <motion.header
-
+          ref={skillsSectionRef}
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, type: "spring" }}
@@ -972,36 +903,20 @@ const SkillsSection = () => {
           onMouseLeave={() => setIsHeaderHovered(false)}
         >
           {/* Background Glow Effect */}
-          <motion.div
-            className="absolute inset-0 rounded-3xl"
-            animate={isHeaderHovered ? {
-              background: [
-                'radial-gradient(circle at 20% 50%, rgba(6, 182, 212, 0.1) 0%, transparent 50%)',
-                'radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.1) 0%, transparent 50%)',
-                'radial-gradient(circle at 80% 50%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)',
-                'radial-gradient(circle at 20% 50%, rgba(6, 182, 212, 0.1) 0%, transparent 50%)',
-              ]
-            } : {}}
-            transition={{ duration: 4, repeat: Infinity }}
-          />
-
-          {/* Animated Border */}
-          <motion.div
-            className="absolute inset-0 rounded-3xl border-2"
-            animate={isHeaderHovered ? {
-              borderColor: [
-                'rgba(6, 182, 212, 0.2)',
-                'rgba(168, 85, 247, 0.2)',
-                'rgba(236, 72, 153, 0.2)',
-                'rgba(6, 182, 212, 0.2)',
-              ],
-              scale: [1, 1.02, 1],
-            } : {}}
-            transition={{
-              borderColor: { duration: 3, repeat: Infinity },
-              scale: { duration: 2, repeat: Infinity }
-            }}
-          />
+          {!shouldReduceMotion && (
+            <motion.div
+              className="absolute inset-0 rounded-3xl"
+              animate={isHeaderHovered ? {
+                background: [
+                  'radial-gradient(circle at 20% 50%, rgba(6, 182, 212, 0.1) 0%, transparent 50%)',
+                  'radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.1) 0%, transparent 50%)',
+                  'radial-gradient(circle at 80% 50%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)',
+                  'radial-gradient(circle at 20% 50%, rgba(6, 182, 212, 0.1) 0%, transparent 50%)',
+                ]
+              } : {}}
+              transition={{ duration: 4, repeat: Infinity }}
+            />
+          )}
 
           <div className="relative px-8 py-8 rounded-3xl bg-gradient-to-b from-slate-900/40 via-slate-900/60 to-slate-900/40 backdrop-blur-xl border border-slate-700/30">
             {/* Animated Top Badge */}
@@ -1012,20 +927,20 @@ const SkillsSection = () => {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-pink-500/10 border border-cyan-500/20 backdrop-blur-sm mb-6"
             >
               <motion.div
-                animate={{ rotate: 360 }}
+                animate={!shouldReduceMotion ? { rotate: 360 } : {}}
                 transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
               >
                 <Sparkles className="w-4 h-4 text-cyan-400" />
               </motion.div>
               <span className="text-xs font-medium text-gray-300">Tech Arsenal</span>
               <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
+                animate={!shouldReduceMotion ? { scale: [1, 1.2, 1] } : {}}
                 transition={{ duration: 2, repeat: Infinity }}
                 className="w-1 h-1 rounded-full bg-cyan-400"
               />
             </motion.div>
 
-            {/* Main Title with Enhanced Animation */}
+            {/* Main Title */}
             <div className="relative mb-6">
               <motion.h1
                 initial={{ opacity: 0, y: 10 }}
@@ -1033,19 +948,12 @@ const SkillsSection = () => {
                 transition={{ delay: 0.3, type: "spring" }}
                 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-2"
               >
-                <motion.span
-                  animate={isHeaderHovered ? {
-                    backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-                  } : {}}
-                  transition={{ duration: 3, repeat: Infinity }}
-                  className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-[length:200%_200%]"
-                  style={{ backgroundSize: '200% 200%' }}
-                >
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400">
                   EXPERTISE SKILLS
-                </motion.span>
+                </span>
               </motion.h1>
 
-              {/* Animated Subtitle */}
+              {/* Subtitle */}
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -1056,7 +964,7 @@ const SkillsSection = () => {
               </motion.p>
             </div>
 
-            {/* Stats Section - Only Total Count and Category Count */}
+            {/* Stats Section */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1076,7 +984,7 @@ const SkillsSection = () => {
                     <div className="text-2xl font-bold text-white">{skills.length}</div>
                   </div>
                   <motion.div
-                    animate={{ rotate: 360 }}
+                    animate={!shouldReduceMotion ? { rotate: 360 } : {}}
                     transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                     className="p-3 rounded-xl bg-gradient-to-br from-cyan-500/20 to-cyan-600/20"
                   >
@@ -1084,7 +992,7 @@ const SkillsSection = () => {
                   </motion.div>
                 </div>
 
-                {/* Animated Progress Bar */}
+                {/* Progress Bar */}
                 <div className="mt-3 h-1 rounded-full bg-slate-700/50 overflow-hidden">
                   <motion.div
                     className="h-full bg-gradient-to-r from-cyan-500 to-blue-500"
@@ -1108,10 +1016,10 @@ const SkillsSection = () => {
                     <div className="text-2xl font-bold text-white">{categories.length - 1}</div>
                   </div>
                   <motion.div
-                    animate={{
+                    animate={!shouldReduceMotion ? {
                       scale: [1, 1.1, 1],
                       rotate: [0, 5, -5, 0]
-                    }}
+                    } : {}}
                     transition={{ duration: 3, repeat: Infinity }}
                     className="p-3 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20"
                   >
@@ -1119,10 +1027,9 @@ const SkillsSection = () => {
                   </motion.div>
                 </div>
 
-                {/* Animated Progress Bar */}
+                {/* Progress Bar */}
                 <div className="mt-3 h-1 rounded-full bg-slate-700/50 overflow-hidden">
                   <motion.div
-                    ref={skillsSectionRef}
                     className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
                     initial={{ width: "0%" }}
                     animate={{ width: `${Math.min(100, ((categories.length - 1) / 10) * 100)}%` }}
@@ -1131,34 +1038,11 @@ const SkillsSection = () => {
                 </div>
               </motion.div>
             </motion.div>
-
-            {/* Animated Orbs */}
-            <div className="absolute top-4 left-4">
-              <motion.div
-                animate={isHeaderHovered ? {
-                  x: [0, 10, 0],
-                  y: [0, -10, 0],
-                } : {}}
-                transition={{ duration: 3, repeat: Infinity }}
-                className="w-3 h-3 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500"
-              />
-            </div>
-            <div className="absolute bottom-4 right-4">
-              <motion.div
-                animate={isHeaderHovered ? {
-                  x: [0, -10, 0],
-                  y: [0, 10, 0],
-                } : {}}
-                transition={{ duration: 3, repeat: Infinity, delay: 1 }}
-                className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"
-              />
-            </div>
           </div>
         </motion.header>
 
-        {/* Enhanced Filter Buttons */}
+        {/* Filter Buttons */}
         <motion.div
-
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
@@ -1200,7 +1084,7 @@ const SkillsSection = () => {
                 </span>
 
                 {/* Active indicator */}
-                {isActive && (
+                {isActive && !shouldReduceMotion && (
                   <motion.div
                     className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-gradient-to-r from-cyan-400 to-purple-400"
                     animate={{ scale: [1, 1.5, 1] }}
@@ -1212,8 +1096,9 @@ const SkillsSection = () => {
           })}
         </motion.div>
 
-        {/* Skills Grid with Stagger Animation */}
+        {/* Skills Grid */}
         <motion.div
+          ref={skillsGridRef}
           layout
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12"
         >
@@ -1240,10 +1125,10 @@ const SkillsSection = () => {
                 className="col-span-full text-center py-20"
               >
                 <motion.div
-                  animate={{
+                  animate={!shouldReduceMotion ? {
                     rotate: [0, 10, -10, 0],
                     scale: [1, 1.1, 1]
-                  }}
+                  } : {}}
                   transition={{ duration: 3, repeat: Infinity }}
                   className="inline-flex items-center justify-center w-24 h-24 bg-slate-900/40 rounded-2xl mb-6 border-2 border-slate-700/30"
                 >
@@ -1258,7 +1143,7 @@ const SkillsSection = () => {
           </AnimatePresence>
         </motion.div>
 
-        {/* Show More/Less Button Section */}
+        {/* Show More/Less Button */}
         {filteredSkills.length > 8 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -1278,7 +1163,7 @@ const SkillsSection = () => {
                 Showing {visibleSkills.length} of {filteredSkills.length} skills
               </motion.div>
 
-              {/* Show More/Less Button */}
+              {/* Button */}
               {hasMoreSkills ? (
                 <ShowMoreButton
                   onClick={handleShowMore}
@@ -1302,10 +1187,11 @@ const SkillsSection = () => {
           transform: translate3d(0, 0, 0);
           backface-visibility: hidden;
         }
-        
       `}</style>
     </div>
   );
 };
 
 export default SkillsSection;
+
+//
