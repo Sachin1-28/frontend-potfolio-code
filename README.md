@@ -15,23 +15,16 @@ The React Compiler is not enabled on this template because of its impact on dev 
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
 
+deployment issue 
 
-<!-- skills 
+logout i want to give 2 times 
 
--- image as icon, skill name, skill category
+very slow on mobile devices loading and scroll every thing
 
-project
+navigation not know so put loading and image not visible put alt or loading
 
--- project name , project duration , project image, project discription , project tech stack, project client, target audience, project features
+<!-- intially backend data is not visible -->
 
-experience 
+<!-- featured project heading -->
 
--- company name, worked role, experience duration , experience discription, experience image, location, company address, key responsibilities , technologies used, work mode
-
-certification
-
---- pdf, course name, course mode, course provider, course duration, course completed date -->
-
-hero section ui design
-
-backend functionlity to hit db every day
+<!-- problem in email sending -->

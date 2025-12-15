@@ -3,38 +3,16 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchSkills, clearError } from "../../store/slices/skillsSlice";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  RectangleVertical, Code2, Type, Server, Venus, Layers, ServerCog, Workflow,
-  Code, Coffee, Zap, Palette, Brush, FileCode, Database, Flame, GitBranch,
-  Container, Cloud, Network, Plug, Layout, Wrench, Hexagon, AlertTriangle,
-  RefreshCw, Sparkles, ChevronUp, ChevronDown, Search, Tag, ChevronRight
+  Code2, Type, Server, Layers,
+  Palette, FileCode, Database,
+  Cloud, Layout, Wrench, Hexagon, AlertTriangle,
+  RefreshCw, Sparkles, ChevronUp, ChevronDown, Search, Tag
 } from "lucide-react";
 
 // Icon mapping with direct imports
 const iconMap = {
-  react: RectangleVertical,
   javascript: Code2,
   typescript: Type,
-  "next.js": Server,
-  vue: Venus,
-  angular: Layers,
-  "node.js": ServerCog,
-  "express js": Workflow,
-  python: Code,
-  java: Coffee,
-  go: Zap,
-  "tailwind css": Palette,
-  sass: Brush,
-  css: Palette,
-  html: FileCode,
-  mongodb: Database,
-  postgresql: Database,
-  mysql: Database,
-  redis: Flame,
-  git: GitBranch,
-  docker: Container,
-  aws: Cloud,
-  graphql: Network,
-  "rest api": Plug,
   frontend: Layout,
   backend: Server,
   styling: Palette,
@@ -1189,7 +1167,7 @@ const SkillsSection = () => {
           {categories.map((cat, idx) => {
             const theme = getTheme(cat === 'All' ? 'default' : cat);
             const isActive = filter.toLowerCase() === cat.toLowerCase();
-            const Icon = iconMap[(cat || '').toLowerCase()] || Hexagon;
+            const Icon = iconMap[(cat || '').toLowerCase()] || FileCode;
 
             return (
               <motion.button
@@ -1320,36 +1298,14 @@ const SkillsSection = () => {
       </div>
 
       <style jsx='true'>{`
-        @keyframes gradient {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradient 3s ease infinite;
-        }
-        
-        .perspective-1200 {
-          perspective: 1200px;
-        }
-        
         .transform-gpu {
           transform: translate3d(0, 0, 0);
           backface-visibility: hidden;
         }
         
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-        }
-        .animate-float {
-          animation: float 3s ease-in-out infinite;
-        }
       `}</style>
     </div>
   );
 };
 
 export default SkillsSection;
-
-//

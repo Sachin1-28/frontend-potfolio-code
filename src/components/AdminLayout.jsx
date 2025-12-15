@@ -49,9 +49,15 @@ const AdminLayout = ({ children }) => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    useEffect(() => {
+        if (!user) {
+            navigate('/admin/login', { replace: true });
+        }
+    }, [user, navigate]);
+
+
     const handleLogout = () => {
-        dispatch(logoutAdmin());    
-        navigate('/admin/login');
+        dispatch(logoutAdmin());
     };
 
     const menuItems = [

@@ -963,25 +963,6 @@ const HeroSection = ({ scrollToSection }) => {
         .transform-gpu {
           transform: translate3d(0, 0, 0);
         }
-            .gradient-text-animate {
-          background: linear-gradient(
-            90deg,
-            #60a5fa 0%,
-            #38bdf8 25%,
-            #22d3ee 50%,
-            #34d399 75%,
-            #60a5fa 100%
-          );
-          background-size: 200% auto;
-          background-clip: text;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: gradient 8s linear infinite;
-        }
-             @keyframes gradient {
-          0% { background-position: 0% center; }
-          100% { background-position: 200% center; }
-        }
         
         /* Performance optimizations */
         @media (prefers-reduced-motion: reduce) {
@@ -1026,24 +1007,7 @@ const HeroSection = ({ scrollToSection }) => {
         .tech-icon-wrapper:hover {
           filter: drop-shadow(0 0 20px var(--tech-color));
         }
-            @media (max-width: 640px) {
-          .left-column {
-            text-align: center;
-          }
-          
-          .social-links {
-            justify-content: center;
-          }
-        }
         
-        /* Enhanced button hover effects */
-        .btn-glow {
-          box-shadow: 0 10px 30px -10px currentColor;
-        }
-        
-        .btn-glow:hover {
-          box-shadow: 0 20px 40px -15px currentColor;
-        }
       `}</style>
     </section>
   );

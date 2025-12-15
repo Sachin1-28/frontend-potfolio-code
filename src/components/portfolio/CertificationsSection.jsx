@@ -649,13 +649,6 @@ const CertificationsSection = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Required Installations */}
-      <div className="hidden">
-        {/* Required Dependencies:
-        npm install framer-motion @react-three/fiber @react-three/drei three
-        */}
-      </div>
     </div>
   );
 };
@@ -694,28 +687,4 @@ export default CertificationsSection;
     scroll-behavior: smooth;
   }
 
-  /* Performance optimizations */
-  .will-change-transform {
-    will-change: transform;
-  }
-
-  .backface-hidden {
-    backface-visibility: hidden;
-  }
-
-  /* Responsive font sizes */
-  @media (max-width: 640px) {
-    .text-responsive-title {
-      font-size: 2rem;
-    }
-    .text-responsive-body {
-      font-size: 0.875rem;
-    }
-  }
-
-  @media (min-width: 641px) and (max-width: 1024px) {
-    .text-responsive-title {
-      font-size: 2.5rem;
-    }
-  }
 `}</style>
